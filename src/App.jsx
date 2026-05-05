@@ -1040,7 +1040,7 @@ function TraceLetterMode({ audio, onBack, onScore }) {
 // ══════════════════════════════════════════════════════
 //  SKILL LEVEL SYSTEM — 100 levels per subject
 // ══════════════════════════════════════════════════════
-const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor","damigotchi","cuncuna"];
+const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor","damigotchi","cuncuna","bloques"];
 
 const SKILL_INFO = {
   letras:   { label:"Letras",      emoji:"🔤", color:"#9B59B6", shadow:"rgba(155,89,182,.5)" },
@@ -1055,6 +1055,7 @@ const SKILL_INFO = {
   castor:   { label:"Castor",      emoji:"🦫", color:"#8D6E63", shadow:"rgba(141,110,99,.5)"   },
   damigotchi:{ label:"Damigotchi",  emoji:"🧩", color:"#FFD700", shadow:"rgba(255,215,0,.5)"   },
   cuncuna:  { label:"Cuncuna",     emoji:"🐛", color:"#4CAF50", shadow:"rgba(76,175,80,.5)"    },
+  bloques:  { label:"Constructor", emoji:"🧱", color:"#FF8C00", shadow:"rgba(255,140,0,.5)"    },
 };
 
 // XP needed per skill level (same curve as pet)
@@ -3649,7 +3650,7 @@ const BALLOON_COLORS = [
   { name:"rosado", color:"#FF69B4" },
 ];
 
-function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete, onPlayCaterpillar }) {
+function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete, onPlayCaterpillar, onPlayBlocks }) {
   return (
     <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 16px 34px",fontFamily:"'Nunito',sans-serif"}}>
       <BackBtn onClick={onBack}/>
@@ -3699,11 +3700,203 @@ function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete,
           🐛 Jugar ahora
         </button>
       </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:420,padding:18,textAlign:"center",marginTop:16,border:"2px solid rgba(255,140,0,.28)"}}>
+        <div style={{fontSize:56,animation:"blocksFloat 1.3s ease-in-out infinite"}}>🧱</div>
+        <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:4}}>Construye para tu Damigotchi</div>
+        <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.65)",lineHeight:1.5,margin:"8px 0 16px"}}>
+          Coloca bloques grandes para completar casitas, torres y puentes. Aprende formas, colores y pensamiento espacial.
+        </div>
+        <button onClick={()=>{audio.playClick();onPlayBlocks();}} style={{background:"linear-gradient(135deg,#FF8C00,#FFD700)",border:"none",borderRadius:18,padding:"13px 28px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>
+          🧱 Jugar ahora
+        </button>
+      </div>
     </div>
   );
 }
 
 
+
+
+function BlocksDamigotchiMode({ audio, onBack, onScore, onCare }) {
+  const SHAPES = [
+    { id:"square", name:"Cuadrado", emoji:"⬛", color:"#FF4136" },
+    { id:"rect", name:"Rectángulo", emoji:"▬", color:"#0074D9" },
+    { id:"tri", name:"Triángulo", emoji:"🔺", color:"#2ECC40" },
+    { id:"roof", name:"Techo", emoji:"🔶", color:"#FFD700" },
+  ];
+
+  const PATTERNS = [
+    { name:"Casita", icon:"🏠", slots:[
+      {x:1,y:0,shape:"roof"}, {x:0,y:1,shape:"square"}, {x:1,y:1,shape:"square"}, {x:2,y:1,shape:"square"},
+      {x:0,y:2,shape:"rect"}, {x:1,y:2,shape:"rect"}, {x:2,y:2,shape:"rect"},
+    ]},
+    { name:"Torre", icon:"🗼", slots:[
+      {x:1,y:0,shape:"square"}, {x:1,y:1,shape:"square"}, {x:1,y:2,shape:"square"}, {x:1,y:3,shape:"rect"},
+      {x:0,y:4,shape:"rect"}, {x:1,y:4,shape:"rect"}, {x:2,y:4,shape:"rect"},
+    ]},
+    { name:"Puente", icon:"🌉", slots:[
+      {x:0,y:2,shape:"square"}, {x:1,y:2,shape:"rect"}, {x:2,y:2,shape:"rect"}, {x:3,y:2,shape:"square"},
+      {x:0,y:3,shape:"rect"}, {x:3,y:3,shape:"rect"},
+    ]},
+  ];
+
+  const [level, setLevel] = useState(1);
+  const [patternIdx, setPatternIdx] = useState(0);
+  const [filled, setFilled] = useState({});
+  const [current, setCurrent] = useState(null);
+  const [score, setScore] = useState(0);
+  const [burst, setBurst] = useState(false);
+  const [wrong, setWrong] = useState(false);
+
+  const pattern = PATTERNS[patternIdx % PATTERNS.length];
+  const neededSlots = pattern.slots;
+  const completed = Object.keys(filled).length >= neededSlots.length;
+
+  const randomPiece = useCallback((lvl=level) => {
+    const remaining = neededSlots.filter((s,i)=>!filled[i]);
+    const useCorrectOften = Math.random() < Math.max(.55, .86 - lvl*.04);
+    const source = remaining.length && useCorrectOften ? remaining[Math.floor(Math.random()*remaining.length)].shape : SHAPES[Math.floor(Math.random()*SHAPES.length)].id;
+    const shape = SHAPES.find(s=>s.id===source) || SHAPES[0];
+    return { ...shape, key:Math.random() };
+  }, [filled, level, neededSlots]);
+
+  useEffect(()=>{ if(!current) setCurrent(randomPiece(level)); }, [current, randomPiece, level]);
+
+  const nextPattern = () => {
+    setFilled({});
+    setCurrent(null);
+    setPatternIdx(i=>i+1);
+  };
+
+  const completeBuild = () => {
+    audio.playCorrect();
+    setBurst(true); setTimeout(()=>setBurst(false), 900);
+    setScore(s=>s+1);
+    onScore && onScore(2);
+    onCare && onCare("learn", 6);
+    setTimeout(()=>{
+      if ((score+1) % 3 === 0) setLevel(l=>l+1);
+      nextPattern();
+    }, 1100);
+  };
+
+  useEffect(()=>{ if(completed) completeBuild(); }, [completed]);
+
+  const place = (idx) => {
+    if (!current || filled[idx]) return;
+    const slot = neededSlots[idx];
+    if (slot.shape === current.id) {
+      audio.playConnect ? audio.playConnect() : audio.playClick();
+      setFilled(prev=>({ ...prev, [idx]:current }));
+      setCurrent(null);
+    } else {
+      audio.playWrong();
+      setWrong(true); setTimeout(()=>setWrong(false), 350);
+    }
+  };
+
+  const maxX = Math.max(...neededSlots.map(s=>s.x))+1;
+  const maxY = Math.max(...neededSlots.map(s=>s.y))+1;
+  const slotSize = level >= 5 ? 58 : 66;
+
+  return (
+    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px 34px",fontFamily:"'Nunito',sans-serif",position:"relative"}}>
+      <StarBurst show={burst}/>
+      <BackBtn onClick={onBack}/>
+      <SoundBar audio={audio}/>
+
+      <div style={{marginTop:38,fontSize:14,fontWeight:900,color:"rgba(255,255,255,.52)",letterSpacing:2}}>🧱 CONSTRUYE PARA TU DAMIGOTCHI</div>
+      <div style={{display:"flex",gap:10,margin:"8px 0 12px",flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{background:"rgba(255,215,0,.12)",border:"2px solid rgba(255,215,0,.45)",borderRadius:14,padding:"6px 12px",color:"#FFD700",fontWeight:900}}>Nv.{level}</div>
+        <div style={{background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.12)",borderRadius:14,padding:"6px 12px",color:"white",fontWeight:900}}>🏗️ {score}</div>
+      </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:440,padding:"16px 14px 18px",textAlign:"center"}}>
+        <div style={{fontSize:15,fontWeight:900,color:"#FFD700",marginBottom:6}}>
+          {pattern.icon} Construye: {pattern.name}
+        </div>
+        <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.55)",marginBottom:12}}>
+          Toca el espacio que corresponde a la pieza actual.
+        </div>
+
+        <div style={{
+          margin:"0 auto 14px",
+          width:Math.min(360, maxX*slotSize+20),
+          minHeight:maxY*slotSize+20,
+          borderRadius:24,
+          background:"linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03))",
+          border:`3px solid ${wrong?"#FF4136":"rgba(255,215,0,.22)"}`,
+          display:"grid",
+          gridTemplateColumns:`repeat(${maxX}, ${slotSize}px)`,
+          gridTemplateRows:`repeat(${maxY}, ${slotSize}px)`,
+          gap:4,
+          justifyContent:"center",
+          alignContent:"center",
+          transition:"border .18s"
+        }}>
+          {Array.from({length:maxX*maxY}).map((_,gridIdx)=>{
+            const x = gridIdx % maxX;
+            const y = Math.floor(gridIdx / maxX);
+            const slotIdx = neededSlots.findIndex(s=>s.x===x && s.y===y);
+            const isSlot = slotIdx >= 0;
+            const filledPiece = isSlot ? filled[slotIdx] : null;
+            const slot = isSlot ? neededSlots[slotIdx] : null;
+            const slotShape = slot ? SHAPES.find(s=>s.id===slot.shape) : null;
+            return (
+              <button key={gridIdx} onClick={()=>isSlot && place(slotIdx)} disabled={!isSlot || !!filledPiece} style={{
+                width:slotSize,
+                height:slotSize,
+                borderRadius:14,
+                border:isSlot?`3px dashed ${slotShape?.color || "#fff"}88`:"none",
+                background:filledPiece ? filledPiece.color : isSlot ? "rgba(255,255,255,.08)" : "transparent",
+                color:"white",
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                fontSize:filledPiece?28:20,
+                cursor:isSlot && !filledPiece ? "pointer" : "default",
+                opacity:isSlot?1:.25,
+                boxShadow:filledPiece?"0 6px 0 rgba(0,0,0,.22)":"none",
+                transition:"all .18s",
+                fontFamily:"'Nunito',sans-serif",
+                fontWeight:900
+              }}>
+                {filledPiece ? filledPiece.emoji : isSlot ? "?" : ""}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{
+          margin:"0 auto",
+          width:"100%",
+          maxWidth:320,
+          borderRadius:22,
+          background:"rgba(255,215,0,.12)",
+          border:"3px solid rgba(255,215,0,.35)",
+          padding:14,
+          display:"flex",
+          alignItems:"center",
+          justifyContent:"space-between",
+          gap:12
+        }}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:12,fontWeight:900,color:"rgba(255,255,255,.55)"}}>Pieza actual</div>
+            <div style={{fontSize:18,fontWeight:900,color:"#FFD700"}}>{current?.name || "..."}</div>
+          </div>
+          <div style={{width:66,height:66,borderRadius:18,background:current?.color || "#777",display:"flex",alignItems:"center",justifyContent:"center",fontSize:34,boxShadow:"0 7px 0 rgba(0,0,0,.22)"}}>
+            {current?.emoji || "🧱"}
+          </div>
+        </div>
+
+        <button onClick={()=>setCurrent(randomPiece(level))} style={{marginTop:12,background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.14)",borderRadius:14,padding:"8px 16px",color:"rgba(255,255,255,.7)",fontFamily:"'Nunito',sans-serif",fontWeight:900,cursor:"pointer"}}>
+          🔄 Cambiar pieza
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function CaterpillarGameMode({ audio, onBack, onScore, onCare }) {
   const FRUITS = [
@@ -4294,7 +4487,7 @@ export default function App(){
   const [achievement, setAchievement] = useState(null);
   const [activeSeries, setActiveSeries] = useState("numberblocks");
   const [purchaseDialog, setPurchaseDialog] = useState(null);
-  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0, cuncuna:0 });
+  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0, cuncuna:0, bloques:0 });
   const audio = useAudio();
 
   // Desbloqueo de audio para celulares/tablets.
@@ -4476,6 +4669,7 @@ export default function App(){
     input::placeholder{color:rgba(255,255,255,.3);}
     @keyframes caterpillarWiggle{0%,100%{transform:translateX(0) rotate(-1deg)}50%{transform:translateX(3px) rotate(1deg)}}
     @keyframes fruitFallWobble{0%,100%{transform:translate(-50%,-50%) rotate(-4deg)}50%{transform:translate(-50%,-54%) rotate(4deg)}}
+    @keyframes blocksFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
   `;
 
   return (
@@ -4500,7 +4694,7 @@ export default function App(){
           progress={progress} audio={audio}/>
       )}
       {screen==="collection" && <CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/>}
-      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")} onPlayCaterpillar={()=>setScreen("cuncuna")}/>} 
+      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")} onPlayCaterpillar={()=>setScreen("cuncuna")} onPlayBlocks={()=>setScreen("bloques")}/>} 
       {screen==="skills"     && <SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/>}
       {screen==="badges"     && <BadgesScreen skills={skills} onBack={()=>setScreen("home")}/>}
       {screen==="diplomas"   && <DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/>}
@@ -4516,6 +4710,7 @@ export default function App(){
       {screen==="galeria"    && <GalleryMode audio={audio} onBack={()=>setScreen("home")}/>}
       {screen==="completa"   && <CompleteDamigotchiGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("damigotchi")} onCare={handleCare}/>} 
       {screen==="cuncuna"    && <CaterpillarGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("cuncuna")} onCare={handleCare}/>} 
+      {screen==="bloques"    && <BlocksDamigotchiMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("bloques")} onCare={handleCare}/>} 
       {screen==="globos"     && <BalloonGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("globos")} onCare={handleCare}/> }
       {screen==="castor"     && <BeaverGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("castor")} onCare={handleCare}/>}
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
