@@ -1040,7 +1040,7 @@ function TraceLetterMode({ audio, onBack, onScore }) {
 // ══════════════════════════════════════════════════════
 //  SKILL LEVEL SYSTEM — 100 levels per subject
 // ══════════════════════════════════════════════════════
-const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor"];
+const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor","damigotchi"];
 
 const SKILL_INFO = {
   letras:   { label:"Letras",      emoji:"🔤", color:"#9B59B6", shadow:"rgba(155,89,182,.5)" },
@@ -1053,6 +1053,7 @@ const SKILL_INFO = {
   colorear: { label:"Pintar",      emoji:"🐾", color:"#4CAF50", shadow:"rgba(76,175,80,.5)"    },
   globos:   { label:"Globos",      emoji:"🎈", color:"#FF4136", shadow:"rgba(255,65,54,.5)"    },
   castor:   { label:"Castor",      emoji:"🦫", color:"#8D6E63", shadow:"rgba(141,110,99,.5)"   },
+  damigotchi:{ label:"Damigotchi",  emoji:"🧩", color:"#FFD700", shadow:"rgba(255,215,0,.5)"   },
 };
 
 // XP needed per skill level (same curve as pet)
@@ -3647,12 +3648,13 @@ const BALLOON_COLORS = [
   { name:"rosado", color:"#FF69B4" },
 ];
 
-function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver }) {
+function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete }) {
   return (
     <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 16px 34px",fontFamily:"'Nunito',sans-serif"}}>
       <BackBtn onClick={onBack}/>
       <div style={{marginTop:54,fontSize:26,fontWeight:900,color:"white",textShadow:"2px 3px 0 rgba(0,0,0,.3)"}}>🎮 Juegos</div>
-      <div style={{color:"rgba(255,255,255,.55)",fontWeight:700,fontSize:14,margin:"6px 0 18px",textAlign:"center"}}>Minijuegos cortitos para ganar estrellas y cartas</div>
+      <div style={{color:"rgba(255,255,255,.55)",fontWeight:700,fontSize:14,margin:"6px 0 18px",textAlign:"center"}}>Minijuegos cortitos para ganar estrellas, cartas e insignias</div>
+
       <div style={{...CARD,width:"100%",maxWidth:420,padding:18,textAlign:"center"}}>
         <div style={{fontSize:56,animation:"bounce 1.2s infinite"}}>🎈</div>
         <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:4}}>Revienta Globos</div>
@@ -3673,6 +3675,176 @@ function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver }) {
         <button onClick={()=>{audio.playClick();onPlayBeaver();}} style={{background:"linear-gradient(135deg,#8B5A2B,#FFD700)",border:"none",borderRadius:18,padding:"13px 28px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>
           🦫 Jugar ahora
         </button>
+      </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:420,padding:18,textAlign:"center",marginTop:16,border:"2px solid rgba(255,215,0,.28)"}}>
+        <div style={{fontSize:56,animation:"iconBounce 1.4s ease-in-out infinite"}}>🧩</div>
+        <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:4}}>Completa el Damigotchi</div>
+        <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.65)",lineHeight:1.5,margin:"8px 0 16px"}}>
+          Reconoce las razas y coloca la cabeza correcta. A medida que subes de nivel aparecen más opciones y más partes para completar.
+        </div>
+        <button onClick={()=>{audio.playClick();onPlayComplete();}} style={{background:"linear-gradient(135deg,#6C5CE7,#FFD700)",border:"none",borderRadius:18,padding:"13px 28px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>
+          🧩 Jugar ahora
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+function CompleteDamigotchiGameMode({ audio, onBack, onScore, onCare }) {
+  const [level, setLevel] = useState(1);
+  const [round, setRound] = useState(1);
+  const [score, setScore] = useState(0);
+  const [targetId, setTargetId] = useState(()=>PET_SPECIES[Math.floor(Math.random()*PET_SPECIES.length)].id);
+  const [options, setOptions] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [pieces, setPieces] = useState({ head:false, symbol:false, name:false });
+  const [burst, setBurst] = useState(false);
+
+  const target = PET_SPECIES.find(s=>s.id===targetId) || PET_SPECIES[0];
+
+  const makeRound = useCallback((nextLevel=level) => {
+    const t = PET_SPECIES[Math.floor(Math.random()*PET_SPECIES.length)];
+    const optionCount = Math.min(8, 3 + Math.floor(nextLevel / 2));
+    const distractors = PET_SPECIES
+      .filter(s=>s.id!==t.id)
+      .sort(()=>Math.random()-.5)
+      .slice(0, optionCount-1);
+    const all = [t, ...distractors].sort(()=>Math.random()-.5);
+
+    setTargetId(t.id);
+    setOptions(all);
+    setSelected(null);
+    setPieces({
+      head: nextLevel < 3 ? false : Math.random() > .25,
+      symbol: nextLevel < 5 ? true : Math.random() > .35,
+      name: nextLevel < 7 ? true : Math.random() > .45,
+    });
+  }, [level]);
+
+  useEffect(()=>{ makeRound(level); }, []);
+
+  const currentTask = level < 3
+    ? "Elige la cabeza correcta"
+    : level < 5
+    ? "Completa el Damigotchi por su raza"
+    : level < 7
+    ? "Reconoce la raza aunque falten piezas"
+    : "Desafío experto: mira bien antes de tocar";
+
+  const handlePick = (sp) => {
+    if (selected) return;
+    setSelected(sp.id);
+    const ok = sp.id === targetId;
+
+    if (ok) {
+      audio.playCorrect();
+      setBurst(true); setTimeout(()=>setBurst(false), 800);
+      setScore(s=>s+1);
+      onScore && onScore(1);
+      onCare && onCare("learn", 5);
+
+      const nextRound = round + 1;
+      const nextLevel = nextRound % 5 === 0 ? level + 1 : level;
+      setTimeout(()=>{
+        setRound(nextRound);
+        if (nextLevel !== level) setLevel(nextLevel);
+        makeRound(nextLevel);
+      }, 850);
+    } else {
+      audio.playWrong();
+      setTimeout(()=>setSelected(null), 600);
+    }
+  };
+
+  const showName = pieces.name;
+  const showSymbol = pieces.symbol;
+  const showHead = pieces.head;
+
+  return (
+    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px 34px",fontFamily:"'Nunito',sans-serif",position:"relative"}}>
+      <StarBurst show={burst}/>
+      <BackBtn onClick={onBack}/>
+      <SoundBar audio={audio}/>
+
+      <div style={{marginTop:38,fontSize:14,fontWeight:900,color:"rgba(255,255,255,.52)",letterSpacing:2}}>🧩 COMPLETA EL DAMIGOTCHI</div>
+      <div style={{display:"flex",gap:10,margin:"8px 0 12px",flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{background:"rgba(255,215,0,.12)",border:"2px solid rgba(255,215,0,.45)",borderRadius:14,padding:"6px 12px",color:"#FFD700",fontWeight:900}}>Nv.{level}</div>
+        <div style={{background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.12)",borderRadius:14,padding:"6px 12px",color:"white",fontWeight:900}}>✅ {score}</div>
+      </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:430,padding:"18px 16px",textAlign:"center",marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:"#FFD700",marginBottom:8}}>{currentTask}</div>
+
+        <div style={{
+          minHeight:218,
+          borderRadius:26,
+          background:`linear-gradient(160deg,${target.colors[1]}33,rgba(255,255,255,.06))`,
+          border:`3px dashed ${target.colors[1]}88`,
+          display:"flex",
+          flexDirection:"column",
+          alignItems:"center",
+          justifyContent:"center",
+          gap:8,
+          position:"relative",
+          overflow:"hidden"
+        }}>
+          <div style={{position:"absolute",top:10,right:12,fontSize:18,opacity:.6}}>✨</div>
+
+          {showHead ? (
+            <PetSprite species={target.id} expression="happy" xp={12} size={110}/>
+          ) : (
+            <div style={{width:110,height:110,borderRadius:"50%",border:"5px dashed rgba(255,255,255,.34)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:38,color:"rgba(255,255,255,.35)"}}>?</div>
+          )}
+
+          <div style={{fontSize:34,filter:"drop-shadow(0 5px 0 rgba(0,0,0,.22))"}}>
+            {showSymbol ? target.emoji : "❔"}
+          </div>
+
+          <div style={{fontSize:24,fontWeight:900,color:"white",textShadow:"2px 3px 0 rgba(0,0,0,.25)"}}>
+            {showName ? target.name : "¿Qué Damigotchi es?"}
+          </div>
+
+          {!showHead && <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.52)"}}>Coloca la cabeza correcta</div>}
+        </div>
+      </div>
+
+      <div style={{width:"100%",maxWidth:430,display:"grid",gridTemplateColumns:level>=6?"repeat(4,1fr)":"repeat(3,1fr)",gap:10}}>
+        {options.map(sp=>{
+          const picked = selected === sp.id;
+          const ok = selected && sp.id === targetId;
+          const wrong = picked && sp.id !== targetId;
+          return (
+            <button key={sp.id} onClick={()=>handlePick(sp)} disabled={!!selected && !wrong} style={{
+              background: ok ? "rgba(46,204,64,.25)" : wrong ? "rgba(255,65,54,.28)" : "rgba(255,255,255,.08)",
+              border:`3px solid ${ok ? "#2ECC40" : wrong ? "#FF4136" : "rgba(255,255,255,.14)"}`,
+              borderRadius:18,
+              padding:"10px 6px",
+              minHeight:118,
+              cursor:selected?"default":"pointer",
+              display:"flex",
+              flexDirection:"column",
+              alignItems:"center",
+              justifyContent:"center",
+              gap:4,
+              transform: ok ? "scale(1.05)" : wrong ? "scale(.94)" : "scale(1)",
+              transition:"all .18s cubic-bezier(.175,.885,.32,1.275)",
+              boxShadow: ok ? "0 0 22px rgba(46,204,64,.5)" : "0 5px 0 rgba(0,0,0,.2)",
+              fontFamily:"'Nunito',sans-serif",
+              color:"white",
+              overflow:"hidden"
+            }}>
+              <PetSprite species={sp.id} expression={ok?"happy":wrong?"sad":"ok"} xp={12} size={58}/>
+              <div style={{fontSize:20}}>{sp.emoji}</div>
+              {level >= 4 && <div style={{fontSize:10,fontWeight:900,color:"rgba(255,255,255,.72)",lineHeight:1.05}}>{sp.name}</div>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{marginTop:12,color:"rgba(255,255,255,.45)",fontSize:12,fontWeight:800,textAlign:"center",maxWidth:420}}>
+        Cada 5 aciertos sube el nivel. En niveles altos tendrás menos pistas y más opciones.
       </div>
     </div>
   );
@@ -3937,7 +4109,7 @@ export default function App(){
   const [achievement, setAchievement] = useState(null);
   const [activeSeries, setActiveSeries] = useState("numberblocks");
   const [purchaseDialog, setPurchaseDialog] = useState(null);
-  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0 });
+  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0 });
   const audio = useAudio();
 
   // Desbloqueo de audio para celulares/tablets.
@@ -4141,7 +4313,7 @@ export default function App(){
           progress={progress} audio={audio}/>
       )}
       {screen==="collection" && <CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/>}
-      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")}/>}
+      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")}/>} 
       {screen==="skills"     && <SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/>}
       {screen==="badges"     && <BadgesScreen skills={skills} onBack={()=>setScreen("home")}/>}
       {screen==="diplomas"   && <DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/>}
@@ -4155,6 +4327,7 @@ export default function App(){
       {screen==="dibujo"     && <DrawMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("dibujo")} onCare={handleCare}/>}
       {screen==="colorear"   && <ColorAnimalsMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("colorear")} onCare={handleCare}/>}
       {screen==="galeria"    && <GalleryMode audio={audio} onBack={()=>setScreen("home")}/>}
+      {screen==="completa"   && <CompleteDamigotchiGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("damigotchi")} onCare={handleCare}/>} 
       {screen==="globos"     && <BalloonGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("globos")} onCare={handleCare}/> }
       {screen==="castor"     && <BeaverGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("castor")} onCare={handleCare}/>}
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
