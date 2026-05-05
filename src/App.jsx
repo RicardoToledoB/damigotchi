@@ -2127,14 +2127,14 @@ function CollectionScreen({ cards, onBack }) {
 
 // ── Pet species catalog ───────────────────────────────
 const PET_SPECIES = [
-  { id:"nature", name:"Naturaleza", emoji:"🌱", colors:["#D8FFD2","#66D36E","#1F8B4C"], desc:"Curioso, explorador y creativo", story:"Nació de una semillita brillante de Damiworld." },
-  { id:"fire",   name:"Fuego",      emoji:"🔥", colors:["#FFE0A3","#FF8C00","#D64500"], desc:"Energético, valiente y rápido", story:"Trae una llamita alegre que nunca se apaga." },
-  { id:"water",  name:"Agua",       emoji:"💧", colors:["#D8F6FF","#4EC5FF","#1067B5"], desc:"Tranquilo, sensible y cariñoso", story:"Viene de una laguna azul donde se guardan los sueños." },
-  { id:"energy", name:"Energía",    emoji:"⚡", colors:["#FFF6A6","#FFD700","#FF8C00"], desc:"Juguetón, inquieto y divertido", story:"Salta entre chispitas cuando aprende algo nuevo." },
-  { id:"sleep",  name:"Sueño",      emoji:"🌙", colors:["#E7D8FF","#9B59B6","#4B2C83"], desc:"Soñador, calmado y dulce", story:"Nació en una nube morada llena de estrellas." },
-  { id:"star",   name:"Estrella",   emoji:"🌟", colors:["#FFF9C4","#FFD700","#FFB300"], desc:"Alegre, brillante y motivador", story:"Brilla más fuerte cuando recibe cariño." },
-  { id:"fox",    name:"Zorrito",    emoji:"🦊", colors:["#FFE1BF","#FF8C32","#C45100"], desc:"Astuto, curioso y juguetón", story:"Un pequeño explorador del bosque de Damiworld." },
-  { id:"panther",name:"Pantera",    emoji:"🐆", colors:["#D9D9E8","#3A3A55","#101020"], desc:"Sigilosa, fuerte y concentrada", story:"Camina en silencio bajo la luz de la luna." },
+  { id:"nature",  name:"Naturaleza", emoji:"🌱", colors:["#B9F6CA","#43A047","#1B5E20"], desc:"Curioso, explorador y creativo", story:"Nació de una semillita brillante de Damiworld. Le encanta dibujar, colorear y descubrir cosas nuevas.", phrase:"¿Qué vamos a crear hoy?" },
+  { id:"fire",    name:"Fuego",      emoji:"🔥", colors:["#FFE082","#FF7043","#BF360C"], desc:"Energético, valiente y rápido", story:"Trae una llamita alegre que nunca se apaga. Se emociona con los juegos rápidos y celebra cada logro.", phrase:"¡Vamos, más rápido!" },
+  { id:"water",   name:"Agua",       emoji:"💧", colors:["#B3E5FC","#29B6F6","#01579B"], desc:"Tranquilo, sensible y cariñoso", story:"Viene de una laguna azul donde se guardan los sueños. Aprende con calma y mucho cariño.", phrase:"Me gusta estar contigo" },
+  { id:"energy",  name:"Energía",    emoji:"⚡", colors:["#FFF59D","#FFD600","#F57F17"], desc:"Juguetón, inquieto y divertido", story:"Salta entre chispitas cuando aprende algo nuevo. Siempre quiere jugar otra vez.", phrase:"¡Juguemos otra vez!" },
+  { id:"dream",   name:"Sueño",      emoji:"🌙", colors:["#D1C4E9","#7E57C2","#311B92"], desc:"Soñador, calmado y tierno", story:"Nació bajo una luna suave. Le gustan las historias, descansar y aprender sin apuro.", phrase:"Tengo un sueño bonito…" },
+  { id:"star",    name:"Estrella",   emoji:"🌟", colors:["#FFF9C4","#FFD700","#B8860B"], desc:"Alegre, positivo y brillante", story:"Brilla con cada logro. Se alegra cuando ganas estrellas, cartas, insignias o diplomas.", phrase:"¡Lo hiciste increíble!" },
+  { id:"fox",     name:"Zorrito",    emoji:"🦊", colors:["#FFE0B2","#F57C00","#8D3C0C"], desc:"Inteligente, curioso y juguetón", story:"Corre por los bosques secretos de Damiworld buscando aventuras. Es astuto, rápido y muy buen amigo.", phrase:"¡Descubramos algo nuevo!" },
+  { id:"panther", name:"Pantera",    emoji:"🐆", colors:["#B0BEC5","#303545","#10121E"], desc:"Sigilosa, fuerte y segura", story:"Vive en los caminos de sombra brillante. Observa con atención antes de actuar y ayuda a concentrarse.", phrase:"Voy a hacerlo perfecto" },
 ];
 
 // 100 evolutions — grouped in 10 eras of 10 levels each
@@ -2364,7 +2364,7 @@ function PetSprite({ species, expression, xp, size=110, outfit=emptyOutfit, acti
       <ellipse cx={75} cy={14} rx={8} ry={18} fill={c2} transform="rotate(10,75,14)"/>
       <ellipse cx={75} cy={14} rx={5} ry={13} fill={c1} transform="rotate(10,75,14)"/>
     </>;
-    if (species==="cat") return <>
+    if (["cat","fox","panther","fire","star"].includes(species)) return <>
       <polygon points="18,28 10,6 30,20" fill={c2}/>
       <polygon points="19,27 13,10 27,20" fill={c1}/>
       <polygon points="82,28 90,6 70,20" fill={c2}/>
@@ -2376,7 +2376,7 @@ function PetSprite({ species, expression, xp, size=110, outfit=emptyOutfit, acti
       <circle cx={78} cy={18} r={13} fill={c2}/>
       <circle cx={78} cy={18} r={8}  fill={c1}/>
     </>;
-    if (species==="frog") return <>
+    if (["frog","nature"].includes(species)) return <>
       <ellipse cx={28} cy={20} rx={12} ry={9} fill={c2}/>
       <circle  cx={28} cy={18} r={6}   fill="#1a1a1a"/>
       <circle  cx={26} cy={16} r={2}   fill="white"/>
@@ -2384,38 +2384,8 @@ function PetSprite({ species, expression, xp, size=110, outfit=emptyOutfit, acti
       <circle  cx={72} cy={18} r={6}   fill="#1a1a1a"/>
       <circle  cx={70} cy={16} r={2}   fill="white"/>
     </>;
-    if (species==="penguin") return <>
+    if (["penguin","water","dream","energy"].includes(species)) return <>
       <ellipse cx={50} cy={10} rx={14} ry={8} fill={c2}/>
-    </>;
-    if (species==="nature") return <>
-      <path d="M50,18 C38,4 39,0 50,8 C61,0 62,4 50,18Z" fill={c3}/>
-      <path d="M50,17 C47,10 49,7 50,5" stroke={c1} strokeWidth={2} fill="none" strokeLinecap="round"/>
-    </>;
-    if (species==="fire") return <>
-      <path d="M50,20 C38,10 48,2 45,0 C60,7 64,14 50,20Z" fill={c3}/>
-      <path d="M50,18 C45,12 51,8 51,5 C57,10 57,15 50,18Z" fill={c1}/>
-    </>;
-    if (species==="water") return <>
-      <path d="M50,3 C39,17 39,25 50,28 C61,25 61,17 50,3Z" fill={c1} opacity={.8}/>
-    </>;
-    if (species==="energy") return <>
-      <polygon points="40,8 52,8 47,23 59,23 42,45 47,28 36,28" fill={c3}/>
-      <polygon points="60,8 48,8 53,23 41,23 58,45 53,28 64,28" fill={c3} opacity={.85}/>
-    </>;
-    if (species==="sleep") return <>
-      <path d="M64,6 A16,16 0 1,0 64,34 A11,11 0 1,1 64,6" fill={c1}/>
-      <circle cx={34} cy={14} r={3} fill={c1}/><circle cx={78} cy={22} r={2.5} fill={c1}/>
-    </>;
-    if (species==="star") return <>
-      <polygon points="50,2 56,18 73,18 59,28 64,44 50,34 36,44 41,28 27,18 44,18" fill={c1}/>
-    </>;
-    if (species==="fox") return <>
-      <polygon points="20,30 10,5 36,21" fill={c3}/><polygon points="21,27 15,11 31,21" fill="#FFE8D6"/>
-      <polygon points="80,30 90,5 64,21" fill={c3}/><polygon points="79,27 85,11 69,21" fill="#FFE8D6"/>
-    </>;
-    if (species==="panther") return <>
-      <polygon points="20,30 11,8 35,22" fill={c3}/><polygon points="21,28 16,13 31,22" fill={c1} opacity={.45}/>
-      <polygon points="80,30 89,8 65,22" fill={c3}/><polygon points="79,28 84,13 69,22" fill={c1} opacity={.45}/>
     </>;
     if (species==="dragon") return <>
       <polygon points="22,30 14,8 34,22" fill={c3}/>
@@ -2484,10 +2454,8 @@ function PetSprite({ species, expression, xp, size=110, outfit=emptyOutfit, acti
       <ellipse cx={50-bodyW*.25} cy={98} rx={9*bsz} ry={4*bsz} fill={c2}/>
       <ellipse cx={50+bodyW*.25} cy={98} rx={9*bsz} ry={4*bsz} fill={c2}/>
 
-      {/* TAILS / SPECIAL BACK FEATURES */}
+      {/* TAIL (bunny) */}
       {species==="bunny" && <circle cx={50+bodyW*.55} cy={bodyY+bodyH*.6} r={7*bsz} fill="white"/>}
-      {species==="fox" && <path d={`M${bodyX+bodyW*.82},${bodyY+bodyH*.36} Q${bodyX+bodyW+30},${bodyY+bodyH*.15} ${bodyX+bodyW+22},${bodyY+bodyH*.62} Q${bodyX+bodyW+8},${bodyY+bodyH*.54} ${bodyX+bodyW*.86},${bodyY+bodyH*.55}`} fill={c3} opacity={.95}/>}
-      {species==="panther" && <path d={`M${bodyX+bodyW*.86},${bodyY+bodyH*.48} Q${bodyX+bodyW+26},${bodyY+bodyH*.72} ${bodyX+bodyW+8},${bodyY+bodyH*.93}`} stroke={c3} strokeWidth={6*bsz} fill="none" strokeLinecap="round"/>}
       {/* WINGS (dragon) */}
       {species==="dragon" && <>
         <path d={`M${bodyX+4},${bodyY} Q${bodyX-20},${bodyY-20} ${bodyX-15},${bodyY+bodyH*.5}`} fill={c3} opacity={.7}/>
@@ -2503,7 +2471,7 @@ function PetSprite({ species, expression, xp, size=110, outfit=emptyOutfit, acti
       <ellipse cx={50-headR*.3} cy={headCY-headR*.4} rx={headR*.3} ry={headR*.2} fill={c1} opacity={.25} transform={`rotate(-25,${50-headR*.3},${headCY-headR*.4})`}/>
 
       {/* species face patch */}
-      {(species==="penguin") && <ellipse cx={50} cy={headCY+headR*.1} rx={headR*.55} ry={headR*.6} fill={c1} opacity={.6}/>}
+      {(["penguin","water","dream","energy","panther"].includes(species)) && <ellipse cx={50} cy={headCY+headR*.1} rx={headR*.55} ry={headR*.6} fill={c1} opacity={.6}/>}
 
       {dead ? <>
         {/* X eyes */}
@@ -2768,16 +2736,13 @@ function PetChooser({ onChoose }) {
       fontFamily:"'Nunito',sans-serif",
     }}>
       <h1 style={{ margin:0, fontWeight:900, fontSize:26, color:"white", textShadow:"2px 3px 0 rgba(0,0,0,.3)", textAlign:"center" }}>
-        🥚 Elige tu raza Damigotchi
+        🥚 ¡Elige tu Damigotchi!
       </h1>
-      <p style={{ color:"rgba(255,255,255,.72)", fontWeight:800, fontSize:14, margin:0, textAlign:"center", maxWidth:430 }}>
-        Los Damigotchi nacen en Damiworld cuando un niño comienza una aventura para aprender, crear y cuidar.
-      </p>
-      <p style={{ color:"#FFD700", fontWeight:900, fontSize:13, margin:0, textAlign:"center" }}>
-        Elige uno, ponle nombre y comienza su historia contigo.
+      <p style={{ color:"rgba(255,255,255,.6)", fontWeight:700, fontSize:14, margin:0, textAlign:"center" }}>
+        Tu bebé crecerá contigo mientras aprendes
       </p>
 
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:12, width:"100%", maxWidth:460 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:12, width:"100%", maxWidth:380 }}>
         {PET_SPECIES.map(sp => (
           <button key={sp.id} onClick={()=>setSelected(sp.id)} style={{
             background: selected===sp.id ? `linear-gradient(135deg,${sp.colors[0]}88,${sp.colors[1]}66)` : "rgba(255,255,255,.06)",
@@ -2790,15 +2755,23 @@ function PetChooser({ onChoose }) {
             <div style={{ pointerEvents:"none" }}>
               <PetSprite species={sp.id} expression={selected===sp.id?"happy":"ok"} xp={8} size={72}/>
             </div>
+            <div style={{ fontSize:22, lineHeight:1 }}>{sp.emoji}</div>
             <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:13, color:"white" }}>{sp.name}</div>
-            <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10, color:"rgba(255,255,255,.68)", textAlign:"center" }}>{sp.desc}</div>
-            <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:9, color:"rgba(255,255,255,.42)", textAlign:"center", lineHeight:1.2 }}>{sp.story}</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10, color:"rgba(255,255,255,.5)", textAlign:"center" }}>{sp.desc}</div>
           </button>
         ))}
       </div>
 
       {selected && (
-        <div style={{ width:"100%", maxWidth:320, display:"flex", flexDirection:"column", gap:10, animation:"fadeSlide .3s ease" }}>
+        <div style={{ width:"100%", maxWidth:360, display:"flex", flexDirection:"column", gap:10, animation:"fadeSlide .3s ease" }}>
+          {(() => { const sp = PET_SPECIES.find(s=>s.id===selected); return (
+            <div style={{background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,215,0,.25)",borderRadius:18,padding:12,textAlign:"center"}}>
+              <div style={{fontSize:34}}>{sp?.emoji}</div>
+              <div style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#FFD700",fontSize:18}}>Damigotchi {sp?.name}</div>
+              <div style={{fontFamily:"'Nunito',sans-serif",fontWeight:700,color:"rgba(255,255,255,.72)",fontSize:12,marginTop:4,lineHeight:1.25}}>{sp?.story}</div>
+              <div style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"white",fontSize:12,marginTop:8}}>“{sp?.phrase}”</div>
+            </div>
+          ); })()}
           <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:13, color:"rgba(255,255,255,.6)", textAlign:"center" }}>
             ¿Cómo se llama tu {PET_SPECIES.find(s=>s.id===selected)?.name}?
           </div>
@@ -2836,7 +2809,7 @@ function PetChooser({ onChoose }) {
 }
 
 // ── Pet home screen ────────────────────────────────────
-function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onSeriesChange, activeSeries,
+function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onSeriesChange, onChangePet, activeSeries,
                    earnedCards, skills, totalLvls, nextCardAt, progress, audio }) {
   const stage = getPetStage(pet.xp);
   const expression = getPetExpression(pet.needs, pet.dead);
@@ -2891,6 +2864,13 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onSerie
             </div>
           </div>
           <div style={{display:"flex",gap:6}}>
+            <button onClick={onChangePet} title="Cambiar Damigotchi" style={{
+              background:"rgba(0,206,209,.14)", border:"2px solid #00CED1",
+              borderRadius:10, padding:"4px 9px", cursor:"pointer",
+              color:"#8FFFFF", fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:12,
+            }}>
+              🧬
+            </button>
             <button onClick={onShop} style={{
               background:"rgba(46,204,64,.14)", border:"2px solid #2ECC40",
               borderRadius:10, padding:"4px 10px", cursor:"pointer",
@@ -3895,6 +3875,7 @@ export default function App(){
         <PetHome pet={pet} onCare={handleCare} onStudy={s=>setScreen(s)}
           onCollection={()=>setScreen("collection")}
           onShop={()=>setScreen("shop")}
+          onChangePet={()=>setScreen("choose")}
           onSkills={()=>setScreen("skills")}
           onSeriesChange={s=>{ setActiveSeries(s); seriesRef.current=s; }}
           activeSeries={activeSeries} earnedCards={earnedCards}
