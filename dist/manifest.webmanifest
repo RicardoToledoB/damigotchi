@@ -1,9 +1,0 @@
-{
-  "name": "Damigotchi",
-  "short_name": "Damigotchi",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#151533",
-  "theme_color": "#302b63",
-  "icons": []
-}
