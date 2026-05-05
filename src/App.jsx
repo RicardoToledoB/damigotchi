@@ -1040,7 +1040,7 @@ function TraceLetterMode({ audio, onBack, onScore }) {
 // ══════════════════════════════════════════════════════
 //  SKILL LEVEL SYSTEM — 100 levels per subject
 // ══════════════════════════════════════════════════════
-const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos"];
+const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor"];
 
 const SKILL_INFO = {
   letras:   { label:"Letras",      emoji:"🔤", color:"#9B59B6", shadow:"rgba(155,89,182,.5)" },
@@ -1052,6 +1052,7 @@ const SKILL_INFO = {
   dibujo:   { label:"Dibujo",      emoji:"🎨", color:"#E91E63", shadow:"rgba(233,30,99,.5)"   },
   colorear: { label:"Pintar",      emoji:"🐾", color:"#4CAF50", shadow:"rgba(76,175,80,.5)"    },
   globos:   { label:"Globos",      emoji:"🎈", color:"#FF4136", shadow:"rgba(255,65,54,.5)"    },
+  castor:   { label:"Castor",      emoji:"🦫", color:"#8D6E63", shadow:"rgba(141,110,99,.5)"   },
 };
 
 // XP needed per skill level (same curve as pet)
@@ -1230,6 +1231,112 @@ function SkillsScreen({ skills, onBack, earnedCards }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+
+// ══════════════════════════════════════════════════════
+//  INSIGNIAS Y DIPLOMAS
+// ══════════════════════════════════════════════════════
+const BADGE_LEVELS = [3,5,10,15,20];
+const BADGE_NAMES = ["Primer logro", "Buen avance", "Gran aprendizaje", "Experto", "Maestro Damigotchi"];
+
+function getBadgeLevelForSkill(xp){
+  const lvl = getSkillLevel(xp || 0);
+  let unlocked = 0;
+  BADGE_LEVELS.forEach((need, i)=>{ if(lvl >= need) unlocked = i + 1; });
+  return unlocked;
+}
+
+function getDiplomaUnlocked(xp){
+  return getSkillLevel(xp || 0) >= 15;
+}
+
+function BadgeIcon({skillId, level, size=62}){
+  const info = SKILL_INFO[skillId] || {emoji:"🏅", color:"#FFD700"};
+  const locked = level <= 0;
+  return (
+    <div style={{width:size,height:size,borderRadius:"50%",background:locked?"rgba(255,255,255,.08)":`linear-gradient(135deg,${info.color},#FFD700)`,border:`3px solid ${locked?"rgba(255,255,255,.12)":"#FFD700"}`,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:locked?"none":"0 7px 0 rgba(0,0,0,.24), 0 0 22px rgba(255,215,0,.25)",filter:locked?"grayscale(1) opacity(.45)":"none",position:"relative",flexShrink:0}}>
+      <span style={{fontSize:size*.42}}>{info.emoji}</span>
+      {!locked && <div style={{position:"absolute",right:-5,bottom:-4,background:"#FFD700",color:"#2b2100",border:"2px solid white",borderRadius:999,padding:"1px 6px",fontSize:10,fontWeight:900}}>Nv.{level}</div>}
+      {locked && <span style={{position:"absolute",fontSize:size*.32}}>🔒</span>}
+    </div>
+  );
+}
+
+function BadgesScreen({ skills, onBack }){
+  const totalBadges = SKILL_IDS.reduce((acc,id)=>acc+getBadgeLevelForSkill(skills[id]||0),0);
+  const maxBadges = SKILL_IDS.length * BADGE_LEVELS.length;
+  return (
+    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 14px 34px",fontFamily:"'Nunito',sans-serif"}}>
+      <BackBtn onClick={onBack}/>
+      <div style={{marginTop:52,fontSize:24,fontWeight:900,color:"white",textShadow:"2px 3px 0 rgba(0,0,0,.3)"}}>🏅 Mis Insignias</div>
+      <div style={{color:"rgba(255,255,255,.55)",fontSize:13,fontWeight:700,marginBottom:14,textAlign:"center"}}>Gana insignias subiendo de nivel en cada materia · {totalBadges}/{maxBadges}</div>
+      <div style={{width:"100%",maxWidth:430,display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10}}>
+        {SKILL_IDS.map(id=>{
+          const info = SKILL_INFO[id];
+          const prog = getSkillProgress(skills[id]||0);
+          const badgeLevel = getBadgeLevelForSkill(skills[id]||0);
+          const nextNeed = BADGE_LEVELS[badgeLevel] || null;
+          return (
+            <div key={id} style={{background:`linear-gradient(135deg,${info.color}22,rgba(255,255,255,.06))`,border:`2px solid ${badgeLevel?info.color:"rgba(255,255,255,.12)"}`,borderRadius:20,padding:12,display:"flex",flexDirection:"column",alignItems:"center",gap:8,minHeight:190}}>
+              <BadgeIcon skillId={id} level={badgeLevel}/>
+              <div style={{fontSize:14,fontWeight:900,color:"white",textAlign:"center"}}>{info.label}</div>
+              <div style={{fontSize:11,fontWeight:800,color:badgeLevel?"#FFD700":"rgba(255,255,255,.45)",textAlign:"center"}}>{badgeLevel?BADGE_NAMES[badgeLevel-1]:"Sin insignia aún"}</div>
+              <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.45)",textAlign:"center"}}>Materia Nv.{prog.lvl}</div>
+              {nextNeed ? <div style={{width:"100%",height:6,background:"rgba(255,255,255,.12)",borderRadius:999,overflow:"hidden"}}><div style={{height:"100%",width:`${Math.min(100,(prog.lvl/nextNeed)*100)}%`,background:info.color,borderRadius:999}}/></div> : <div style={{fontSize:18}}>🏆</div>}
+              {nextNeed && <div style={{fontSize:9,color:"rgba(255,255,255,.35)",fontWeight:700}}>Próxima en Nv.{nextNeed}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DiplomaPreview({ skillId, childName="Mi pequeño/a" }){
+  const info = SKILL_INFO[skillId];
+  return (
+    <div id={`diploma-${skillId}`} style={{background:"#fff7d6",color:"#2b2100",border:"8px solid #FFD700",borderRadius:22,padding:18,textAlign:"center",boxShadow:"0 10px 0 rgba(0,0,0,.22)",maxWidth:360,margin:"0 auto"}}>
+      <div style={{fontSize:44}}>🏅</div>
+      <div style={{fontSize:23,fontWeight:900,color:"#8a6200"}}>Diploma Damigotchi</div>
+      <div style={{fontSize:12,fontWeight:900,letterSpacing:1,color:"#a06e00",marginTop:2}}>CERTIFICADO DE APRENDIZAJE</div>
+      <div style={{height:1,background:"#d6a600",margin:"10px 0"}}/>
+      <div style={{fontSize:13,fontWeight:800}}>Se entrega a</div>
+      <div style={{fontSize:22,fontWeight:900,margin:"4px 0",color:"#3d2d00"}}>{childName}</div>
+      <p style={{fontSize:13,lineHeight:1.35,margin:"8px 0"}}>Por avanzar con alegría y esfuerzo en</p>
+      <div style={{fontSize:30}}>{info.emoji}</div>
+      <div style={{fontSize:20,fontWeight:900,color:info.color}}>{info.label}</div>
+      <div style={{height:1,background:"#d6a600",margin:"12px 0 8px"}}/>
+      <div style={{fontSize:11,fontWeight:900,color:"#8a6200"}}>🇨🇱 Creado por Ricardo Toledo Barria</div>
+    </div>
+  );
+}
+
+function DiplomasScreen({ skills, pet, onBack }){
+  const [selected, setSelected] = useState(SKILL_IDS.find(id=>getDiplomaUnlocked(skills[id]||0)) || SKILL_IDS[0]);
+  const unlockedCount = SKILL_IDS.filter(id=>getDiplomaUnlocked(skills[id]||0)).length;
+  const printDiploma = () => {
+    window.print();
+  };
+  return (
+    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"16px 14px 34px",fontFamily:"'Nunito',sans-serif"}}>
+      <style>{`@media print{body *{visibility:hidden!important} #diploma-${selected}, #diploma-${selected} *{visibility:visible!important} #diploma-${selected}{position:absolute;left:0;right:0;top:20px;margin:auto!important;box-shadow:none!important}}`}</style>
+      <BackBtn onClick={onBack}/>
+      <div style={{marginTop:52,fontSize:24,fontWeight:900,color:"white",textShadow:"2px 3px 0 rgba(0,0,0,.3)"}}>📜 Mis Diplomas</div>
+      <div style={{color:"rgba(255,255,255,.55)",fontSize:13,fontWeight:700,marginBottom:14,textAlign:"center"}}>Se desbloquean desde nivel 15 por materia · {unlockedCount}/{SKILL_IDS.length}</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",maxWidth:430,marginBottom:14}}>
+        {SKILL_IDS.map(id=>{
+          const info=SKILL_INFO[id];
+          const unlocked=getDiplomaUnlocked(skills[id]||0);
+          return <button key={id} onClick={()=>setSelected(id)} style={{background:selected===id?`${info.color}33`:"rgba(255,255,255,.07)",border:`2px solid ${selected===id?info.color:"rgba(255,255,255,.12)"}`,borderRadius:12,padding:"7px 10px",color:unlocked?"white":"rgba(255,255,255,.35)",fontFamily:"'Nunito',sans-serif",fontWeight:900,cursor:"pointer",filter:unlocked?"none":"grayscale(1)"}}>{unlocked?info.emoji:"🔒"} {info.label}</button>
+        })}
+      </div>
+      {getDiplomaUnlocked(skills[selected]||0) ? <>
+        <DiplomaPreview skillId={selected} childName={pet?.name || "Mi pequeño/a"}/>
+        <button onClick={printDiploma} style={{marginTop:16,background:"linear-gradient(135deg,#FFD700,#FF8C00)",border:"none",borderRadius:16,padding:"12px 24px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#261b00",fontSize:16,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>🖨️ Imprimir diploma</button>
+      </> : <div style={{maxWidth:380,background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.13)",borderRadius:22,padding:20,textAlign:"center",color:"rgba(255,255,255,.7)",fontWeight:800}}>🔒 Este diploma se desbloquea cuando {pet?.name || "tu Damigotchi"} llegue a nivel 15 en {SKILL_INFO[selected].label}.</div>}
     </div>
   );
 }
@@ -1852,6 +1959,128 @@ function NewCardReveal({ card, onClose }) {
       </div>
       <div style={{transform:"scale(.56)", width:58, height:78, transformOrigin:"center"}}>
         <FlipCard card={card} flipped={flipped} onClick={()=>{}} size="sm"/>
+      </div>
+    </div>
+  );
+}
+
+
+
+// ── Achievement reveal popup: insignias y diplomas ─────────
+function AchievementReveal({ achievement, onClose }) {
+  useEffect(() => {
+    if (!achievement) return;
+    const t = setTimeout(() => onClose && onClose(), achievement.type === "diploma" ? 2600 : 2100);
+    return () => clearTimeout(t);
+  }, [achievement, onClose]);
+
+  if (!achievement) return null;
+
+  const info = SKILL_INFO[achievement.skillId] || { emoji:"🏅", label:"Aprendizaje", color:"#FFD700" };
+  const isDiploma = achievement.type === "diploma";
+
+  return (
+    <div style={{
+      position:"fixed",
+      inset:0,
+      zIndex:650,
+      pointerEvents:"none",
+      display:"flex",
+      alignItems:"center",
+      justifyContent:"center",
+      padding:18,
+      background:"rgba(8,6,28,.28)",
+      backdropFilter:"blur(2px)",
+      animation:"fadeSlide .18s ease-out"
+    }}>
+      {/* confetti */}
+      {["⭐","✨","💫","🎉","🌟","🏅","✨","⭐"].map((e,i)=>(
+        <div key={i} style={{
+          position:"fixed",
+          top:-20,
+          left:`${8+i*12}%`,
+          fontSize:24+(i%3)*8,
+          animation:`confettiFall ${1.6+i*.08}s ease-in forwards`,
+          animationDelay:`${i*.04}s`,
+          pointerEvents:"none"
+        }}>{e}</div>
+      ))}
+
+      <div style={{
+        width:"min(360px, 92vw)",
+        background:"linear-gradient(160deg,#3c3577,#211d4a)",
+        border:`4px solid ${isDiploma ? "#FFD700" : info.color}`,
+        borderRadius:28,
+        boxShadow:"0 22px 70px rgba(0,0,0,.55), 0 0 35px rgba(255,215,0,.25)",
+        padding:20,
+        textAlign:"center",
+        fontFamily:"'Nunito',sans-serif",
+        transform:"scale(1)",
+        animation:"completePop .38s cubic-bezier(.175,.885,.32,1.275)",
+        position:"relative",
+        overflow:"hidden"
+      }}>
+        <div style={{
+          position:"absolute",
+          inset:0,
+          background:"linear-gradient(120deg,transparent 25%,rgba(255,255,255,.16) 50%,transparent 75%)",
+          backgroundSize:"220% 100%",
+          animation:"shimmerSlide 1.8s ease-in-out infinite",
+          pointerEvents:"none"
+        }}/>
+
+        <div style={{fontSize:isDiploma ? 56 : 62, marginBottom:6}}>
+          {isDiploma ? "📜" : "🏅"}
+        </div>
+
+        <div style={{
+          color:"#FFD700",
+          fontSize:15,
+          fontWeight:900,
+          letterSpacing:1,
+          textTransform:"uppercase",
+          marginBottom:4
+        }}>
+          {isDiploma ? "¡Nuevo diploma disponible!" : "¡Nueva insignia!"}
+        </div>
+
+        <div style={{
+          color:"white",
+          fontSize:26,
+          fontWeight:900,
+          textShadow:"2px 3px 0 rgba(0,0,0,.28)",
+          lineHeight:1.05
+        }}>
+          {isDiploma ? `Diploma de ${info.label}` : `${info.label} Nv.${achievement.level}`}
+        </div>
+
+        <div style={{
+          margin:"12px auto",
+          width:isDiploma ? 240 : 120,
+          minHeight:isDiploma ? 118 : 120,
+          borderRadius:isDiploma ? 18 : "50%",
+          background:isDiploma ? "#fff7d6" : `linear-gradient(135deg,${info.color},#FFD700)`,
+          border:isDiploma ? "5px solid #FFD700" : "5px solid #FFD700",
+          color:isDiploma ? "#2b2100" : "white",
+          display:"flex",
+          flexDirection:"column",
+          alignItems:"center",
+          justifyContent:"center",
+          boxShadow:"0 9px 0 rgba(0,0,0,.24)",
+          position:"relative"
+        }}>
+          <div style={{fontSize:isDiploma ? 34 : 42}}>{isDiploma ? "🏅" : info.emoji}</div>
+          <div style={{fontSize:isDiploma ? 16 : 13,fontWeight:900,marginTop:4}}>
+            {isDiploma ? "Diploma Damigotchi" : BADGE_NAMES[(achievement.level || 1)-1]}
+          </div>
+          {isDiploma && <div style={{fontSize:12,fontWeight:900,color:"#8a6200",marginTop:4}}>Por avanzar en {info.label}</div>}
+        </div>
+
+        <div style={{color:"rgba(255,255,255,.72)",fontSize:13,fontWeight:800,lineHeight:1.25}}>
+          {isDiploma
+            ? "Ya puedes verlo e imprimirlo en la sección Diplomas."
+            : "Puedes verla cuando quieras en la sección Insignias."}
+        </div>
       </div>
     </div>
   );
@@ -2809,7 +3038,7 @@ function PetChooser({ onChoose }) {
 }
 
 // ── Pet home screen ────────────────────────────────────
-function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onSeriesChange, onChangePet, activeSeries,
+function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadges, onDiplomas, onSeriesChange, onChangePet, activeSeries,
                    earnedCards, skills, totalLvls, nextCardAt, progress, audio }) {
   const stage = getPetStage(pet.xp);
   const expression = getPetExpression(pet.needs, pet.dead);
@@ -2996,6 +3225,12 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onSerie
               <div style={{ display:"flex", gap:5 }}>
                 <button onClick={()=>{audio.playClick();onSkills();}} style={{ background:"rgba(155,89,182,.25)", border:"2px solid #9B59B6", borderRadius:8, padding:"3px 8px", cursor:"pointer", color:"#CE93D8", fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
                   📚 Materias
+                </button>
+                <button onClick={()=>{audio.playClick();onBadges();}} style={{ background:"rgba(255,215,0,.18)", border:"2px solid #FFD700", borderRadius:8, padding:"3px 8px", cursor:"pointer", color:"#FFD700", fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
+                  🏅 Insignias
+                </button>
+                <button onClick={()=>{audio.playClick();onDiplomas();}} style={{ background:"rgba(0,206,209,.16)", border:"2px solid #00CED1", borderRadius:8, padding:"3px 8px", cursor:"pointer", color:"#91FFFF", fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
+                  📜 Diplomas
                 </button>
                 <button onClick={()=>{audio.playClick();setShowPicker(p=>!p);}} style={{ background:`${si.color}33`, border:`2px solid ${si.color}`, borderRadius:8, padding:"3px 8px", cursor:"pointer", color:si.color, fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
                   {si.icon} {showPicker?"▲":"▼"}
@@ -3699,6 +3934,7 @@ export default function App(){
   const [screen, setScreen] = useState("splash");
   const [earnedCards, setEarnedCards] = useState([]);
   const [newCard, setNewCard] = useState(null);
+  const [achievement, setAchievement] = useState(null);
   const [activeSeries, setActiveSeries] = useState("numberblocks");
   const [purchaseDialog, setPurchaseDialog] = useState(null);
   const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0 });
@@ -3756,9 +3992,28 @@ export default function App(){
   // ── Score handler: add XP to skill, update cards based on total skill levels ──
   const onScore = useCallback((skillId, pts=1) => {
     // 1. Update skill XP
-    const newSkills = { ...skillsRef.current, [skillId]: (skillsRef.current[skillId]||0) + pts };
+    const oldSkills = skillsRef.current;
+    const oldXp = oldSkills[skillId] || 0;
+    const oldBadge = getBadgeLevelForSkill(oldXp);
+    const oldDiploma = getDiplomaUnlocked(oldXp);
+
+    const newSkills = { ...oldSkills, [skillId]: oldXp + pts };
+    const newXp = newSkills[skillId] || 0;
+    const newBadge = getBadgeLevelForSkill(newXp);
+    const newDiploma = getDiplomaUnlocked(newXp);
+
     setSkills(newSkills);
     skillsRef.current = newSkills;
+
+    // 1.b Logros visuales: mostrar insignia/diploma cuando se desbloquean
+    if (newBadge > oldBadge) {
+      setAchievement({ type:"badge", skillId, level:newBadge, key:`badge-${skillId}-${newBadge}-${Date.now()}` });
+    }
+    if (!oldDiploma && newDiploma) {
+      setTimeout(() => {
+        setAchievement({ type:"diploma", skillId, level:newBadge, key:`diploma-${skillId}-${Date.now()}` });
+      }, newBadge > oldBadge ? 2200 : 100);
+    }
 
     // 2. Update pet XP + needs
     setPet(p => p && !p.dead ? normalizePet({
@@ -3868,6 +4123,7 @@ export default function App(){
     <>
       <style>{CSS+EXTRA_CSS}</style>
       {newCard && <NewCardReveal card={newCard} onClose={()=>setNewCard(null)}/>}
+      {achievement && <AchievementReveal achievement={achievement} onClose={()=>setAchievement(null)}/>}
 
       {screen==="splash"  && <Splash audioReady={audio.audioReady} onStart={async()=>{ await audio.initAudio(); setScreen(pet?"home":"choose"); }}/>}
       {screen==="choose"  && <PetChooser onChoose={(sp,nm)=>{ setPet(normalizePet({ species:sp, name:nm, xp:0, stars:0, dead:false, action:"idle", ownedClothes:[], outfit:emptyOutfit, needs:{ hunger:85,bath:85,sleep:85,love:85,learn:85,cards:85 } })); setScreen("home"); }}/>}
@@ -3877,6 +4133,8 @@ export default function App(){
           onShop={()=>setScreen("shop")}
           onChangePet={()=>setScreen("choose")}
           onSkills={()=>setScreen("skills")}
+          onBadges={()=>setScreen("badges")}
+          onDiplomas={()=>setScreen("diplomas")}
           onSeriesChange={s=>{ setActiveSeries(s); seriesRef.current=s; }}
           activeSeries={activeSeries} earnedCards={earnedCards}
           skills={skills} totalLvls={totalLvls} nextCardAt={nextCardAt}
@@ -3885,6 +4143,8 @@ export default function App(){
       {screen==="collection" && <CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/>}
       {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")}/>}
       {screen==="skills"     && <SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/>}
+      {screen==="badges"     && <BadgesScreen skills={skills} onBack={()=>setScreen("home")}/>}
+      {screen==="diplomas"   && <DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/>}
       {screen==="shop"       && pet && <WardrobeScreen pet={normalizePet(pet)} onBack={()=>setScreen("home")} onBuy={buyClothing} onEquip={equipClothing} onUnequip={unequipClothing} audio={audio}/>}
       {screen==="letras"     && <LettersMode   audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("letras")}/>}
       {screen==="sumas"      && <MathMode mode="add" audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("sumas")}/>}
