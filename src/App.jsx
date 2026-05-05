@@ -1040,7 +1040,7 @@ function TraceLetterMode({ audio, onBack, onScore }) {
 // ══════════════════════════════════════════════════════
 //  SKILL LEVEL SYSTEM — 100 levels per subject
 // ══════════════════════════════════════════════════════
-const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor","damigotchi"];
+const SKILL_IDS = ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","globos","castor","damigotchi","cuncuna"];
 
 const SKILL_INFO = {
   letras:   { label:"Letras",      emoji:"🔤", color:"#9B59B6", shadow:"rgba(155,89,182,.5)" },
@@ -1054,6 +1054,7 @@ const SKILL_INFO = {
   globos:   { label:"Globos",      emoji:"🎈", color:"#FF4136", shadow:"rgba(255,65,54,.5)"    },
   castor:   { label:"Castor",      emoji:"🦫", color:"#8D6E63", shadow:"rgba(141,110,99,.5)"   },
   damigotchi:{ label:"Damigotchi",  emoji:"🧩", color:"#FFD700", shadow:"rgba(255,215,0,.5)"   },
+  cuncuna:  { label:"Cuncuna",     emoji:"🐛", color:"#4CAF50", shadow:"rgba(76,175,80,.5)"    },
 };
 
 // XP needed per skill level (same curve as pet)
@@ -3648,7 +3649,7 @@ const BALLOON_COLORS = [
   { name:"rosado", color:"#FF69B4" },
 ];
 
-function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete }) {
+function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete, onPlayCaterpillar }) {
   return (
     <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 16px 34px",fontFamily:"'Nunito',sans-serif"}}>
       <BackBtn onClick={onBack}/>
@@ -3687,10 +3688,194 @@ function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete 
           🧩 Jugar ahora
         </button>
       </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:420,padding:18,textAlign:"center",marginTop:16,border:"2px solid rgba(76,175,80,.28)"}}>
+        <div style={{fontSize:56,animation:"caterpillarWiggle 1.1s ease-in-out infinite"}}>🐛</div>
+        <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:4}}>Cuncuna Damigotchi</div>
+        <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.65)",lineHeight:1.5,margin:"8px 0 16px"}}>
+          Come frutas, crece y aprende colores. En niveles avanzados debe comer solo la fruta del color que Damigotchi pide.
+        </div>
+        <button onClick={()=>{audio.playClick();onPlayCaterpillar();}} style={{background:"linear-gradient(135deg,#4CAF50,#FFD700)",border:"none",borderRadius:18,padding:"13px 28px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>
+          🐛 Jugar ahora
+        </button>
+      </div>
     </div>
   );
 }
 
+
+
+function CaterpillarGameMode({ audio, onBack, onScore, onCare }) {
+  const FRUITS = [
+    { emoji:"🍎", color:"rojo", hex:"#FF4136", label:"manzana" },
+    { emoji:"🍌", color:"amarillo", hex:"#FFD700", label:"plátano" },
+    { emoji:"🍇", color:"morado", hex:"#9B59B6", label:"uva" },
+    { emoji:"🍊", color:"naranjo", hex:"#FF8C00", label:"naranja" },
+    { emoji:"🍐", color:"verde", hex:"#2ECC40", label:"pera" },
+  ];
+
+  const randomFruit = (level) => {
+    const f = FRUITS[Math.floor(Math.random()*FRUITS.length)];
+    return { ...f, id: Math.random(), x: 6 + Math.random()*88, y: -10, speed: 0.55 + level*.08 + Math.random()*.25 };
+  };
+
+  const [level, setLevel] = useState(1);
+  const [score, setScore] = useState(0);
+  const [length, setLength] = useState(3);
+  const [fruits, setFruits] = useState([]);
+  const [targetColor, setTargetColor] = useState(null);
+  const [burst, setBurst] = useState(false);
+  const [miss, setMiss] = useState(false);
+  const gameRef = useRef({ fruits:[], level:1, targetColor:null });
+
+  useEffect(()=>{ gameRef.current = { fruits, level, targetColor }; }, [fruits, level, targetColor]);
+
+  useEffect(()=>{
+    setTargetColor(level >= 4 ? FRUITS[Math.floor(Math.random()*FRUITS.length)].color : null);
+  }, [level]);
+
+  useEffect(()=>{
+    const spawnMs = Math.max(520, 1050 - level*70);
+    const spawner = setInterval(()=>{
+      setFruits(prev => {
+        const max = Math.min(9, 2 + Math.floor(level/2));
+        if (prev.length >= max) return prev;
+        return [...prev, randomFruit(level)];
+      });
+    }, spawnMs);
+
+    const mover = setInterval(()=>{
+      setFruits(prev => prev
+        .map(f => ({ ...f, y:f.y + f.speed }))
+        .filter(f => f.y < 112)
+      );
+    }, 45);
+
+    return ()=>{ clearInterval(spawner); clearInterval(mover); };
+  }, [level]);
+
+  const eatFruit = (fruitId) => {
+    const fruit = gameRef.current.fruits.find(f=>f.id===fruitId);
+    if (!fruit) return;
+
+    const mustColor = gameRef.current.targetColor;
+    const ok = !mustColor || fruit.color === mustColor;
+
+    setFruits(prev => prev.filter(f=>f.id!==fruitId));
+
+    if (ok) {
+      audio.playCorrect();
+      setBurst(true); setTimeout(()=>setBurst(false), 650);
+      setScore(s=>s+1);
+      setLength(l=>Math.min(12, l+1));
+      onScore && onScore(1);
+      onCare && onCare("hunger", 4);
+
+      const nextScore = score + 1;
+      if (nextScore > 0 && nextScore % 6 === 0) {
+        setLevel(l=>l+1);
+        setLength(3);
+      }
+    } else {
+      audio.playWrong();
+      setMiss(true); setTimeout(()=>setMiss(false), 450);
+      setLength(l=>Math.max(2, l-1));
+    }
+  };
+
+  const targetFruit = targetColor ? FRUITS.find(f=>f.color===targetColor) : null;
+
+  return (
+    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 14px 34px",fontFamily:"'Nunito',sans-serif",position:"relative",overflow:"hidden"}}>
+      <StarBurst show={burst}/>
+      <BackBtn onClick={onBack}/>
+      <SoundBar audio={audio}/>
+
+      <div style={{marginTop:38,fontSize:14,fontWeight:900,color:"rgba(255,255,255,.52)",letterSpacing:2}}>🐛 CUNCUNA DAMIGOTCHI</div>
+      <div style={{display:"flex",gap:10,margin:"8px 0 12px",flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{background:"rgba(255,215,0,.12)",border:"2px solid rgba(255,215,0,.45)",borderRadius:14,padding:"6px 12px",color:"#FFD700",fontWeight:900}}>Nv.{level}</div>
+        <div style={{background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.12)",borderRadius:14,padding:"6px 12px",color:"white",fontWeight:900}}>🍎 {score}</div>
+        <div style={{background:"rgba(76,175,80,.14)",border:"2px solid rgba(76,175,80,.42)",borderRadius:14,padding:"6px 12px",color:"#7CFF8A",fontWeight:900}}>Largo {length}</div>
+      </div>
+
+      <div style={{...CARD,width:"100%",maxWidth:430,padding:"14px 14px 18px",textAlign:"center"}}>
+        <div style={{fontSize:15,fontWeight:900,color:"#FFD700",marginBottom:8}}>
+          {targetFruit ? `Come solo frutas de color ${targetFruit.color} ${targetFruit.emoji}` : "Come las frutas para hacer crecer la cuncuna"}
+        </div>
+
+        <div style={{
+          position:"relative",
+          height:420,
+          borderRadius:26,
+          background:"linear-gradient(180deg,rgba(67,160,71,.22),rgba(46,125,50,.08))",
+          border:"3px solid rgba(76,175,80,.30)",
+          overflow:"hidden",
+          boxShadow: miss ? "0 0 0 4px rgba(255,65,54,.45)" : "inset 0 0 28px rgba(0,0,0,.16)",
+          transition:"box-shadow .2s"
+        }}>
+          {/* grass */}
+          <div style={{position:"absolute",bottom:0,left:0,right:0,height:38,background:"linear-gradient(180deg,rgba(76,175,80,.1),rgba(76,175,80,.35))"}}/>
+
+          {fruits.map(f=>(
+            <button key={f.id} onClick={()=>eatFruit(f.id)} style={{
+              position:"absolute",
+              left:`${f.x}%`,
+              top:`${f.y}%`,
+              transform:"translate(-50%,-50%)",
+              background:"rgba(255,255,255,.12)",
+              border:`3px solid ${f.hex}`,
+              borderRadius:"50%",
+              width:54,
+              height:54,
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              fontSize:31,
+              cursor:"pointer",
+              boxShadow:`0 7px 0 rgba(0,0,0,.18),0 0 16px ${f.hex}55`,
+              animation:"fruitFallWobble .9s ease-in-out infinite",
+              zIndex:5
+            }}>
+              {f.emoji}
+            </button>
+          ))}
+
+          {/* caterpillar */}
+          <div style={{position:"absolute",left:"50%",bottom:34,transform:"translateX(-50%)",display:"flex",alignItems:"center",justifyContent:"center",gap:0,zIndex:8,animation:"caterpillarWiggle 1.2s ease-in-out infinite"}}>
+            {Array.from({length}).map((_,i)=>(
+              <div key={i} style={{
+                width:i===0?46:34,
+                height:i===0?46:34,
+                borderRadius:"50%",
+                background:i===0?"#7CFC00":"#4CAF50",
+                border:"3px solid rgba(0,0,0,.18)",
+                marginLeft:i===0?0:-8,
+                display:"flex",
+                alignItems:"center",
+                justifyContent:"center",
+                boxShadow:"0 6px 0 rgba(0,0,0,.18)",
+                position:"relative",
+                zIndex:20-i
+              }}>
+                {i===0 && (
+                  <>
+                    <span style={{position:"absolute",top:13,left:12,width:7,height:9,background:"#111",borderRadius:"50%"}}/>
+                    <span style={{position:"absolute",top:13,right:12,width:7,height:9,background:"#111",borderRadius:"50%"}}/>
+                    <span style={{position:"absolute",bottom:10,left:"50%",transform:"translateX(-50%)",width:18,height:8,borderBottom:"3px solid #111",borderRadius:"0 0 20px 20px"}}/>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.45)",marginTop:10,lineHeight:1.25}}>
+          Cada 6 frutas sube el nivel. Desde nivel 4 debe comer solo el color que se pide.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function CompleteDamigotchiGameMode({ audio, onBack, onScore, onCare }) {
   const [level, setLevel] = useState(1);
@@ -4109,7 +4294,7 @@ export default function App(){
   const [achievement, setAchievement] = useState(null);
   const [activeSeries, setActiveSeries] = useState("numberblocks");
   const [purchaseDialog, setPurchaseDialog] = useState(null);
-  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0 });
+  const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0, cuncuna:0 });
   const audio = useAudio();
 
   // Desbloqueo de audio para celulares/tablets.
@@ -4289,6 +4474,8 @@ export default function App(){
     @keyframes beaverHit{0%{transform:scale(1)}55%{transform:scale(.82) rotate(-8deg)}100%{transform:scale(1)}}
     @keyframes hitSpark{0%{transform:translate(-50%,8px) scale(.6);opacity:0}45%{transform:translate(-50%,-8px) scale(1.25);opacity:1}100%{transform:translate(-50%,-26px) scale(.75);opacity:0}}
     input::placeholder{color:rgba(255,255,255,.3);}
+    @keyframes caterpillarWiggle{0%,100%{transform:translateX(0) rotate(-1deg)}50%{transform:translateX(3px) rotate(1deg)}}
+    @keyframes fruitFallWobble{0%,100%{transform:translate(-50%,-50%) rotate(-4deg)}50%{transform:translate(-50%,-54%) rotate(4deg)}}
   `;
 
   return (
@@ -4313,7 +4500,7 @@ export default function App(){
           progress={progress} audio={audio}/>
       )}
       {screen==="collection" && <CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/>}
-      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")}/>} 
+      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")} onPlayCaterpillar={()=>setScreen("cuncuna")}/>} 
       {screen==="skills"     && <SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/>}
       {screen==="badges"     && <BadgesScreen skills={skills} onBack={()=>setScreen("home")}/>}
       {screen==="diplomas"   && <DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/>}
@@ -4328,6 +4515,7 @@ export default function App(){
       {screen==="colorear"   && <ColorAnimalsMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("colorear")} onCare={handleCare}/>}
       {screen==="galeria"    && <GalleryMode audio={audio} onBack={()=>setScreen("home")}/>}
       {screen==="completa"   && <CompleteDamigotchiGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("damigotchi")} onCare={handleCare}/>} 
+      {screen==="cuncuna"    && <CaterpillarGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("cuncuna")} onCare={handleCare}/>} 
       {screen==="globos"     && <BalloonGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("globos")} onCare={handleCare}/> }
       {screen==="castor"     && <BeaverGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("castor")} onCare={handleCare}/>}
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
