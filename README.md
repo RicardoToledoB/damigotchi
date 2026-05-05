@@ -47,3 +47,9 @@ src/
   main.jsx
   styles.css
 ```
+
+## Actualización razas oficiales
+Esta versión agrega la selección inicial de razas Damigotchi con historia:
+Naturaleza, Fuego, Agua, Energía, Sueño, Estrella, Zorrito y Pantera.
+
+También se incluye una carpeta opcional `../damigotchi-web-oficial` con una web narrativa simple para presentar el universo Damigotchi y simular registro de interesados en localStorage.
