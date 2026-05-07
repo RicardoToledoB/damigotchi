@@ -3536,7 +3536,7 @@ function PetHome({ pet, onCare, onRestToggle, onStudy, onCollection, onShop, onS
 
   // mood description
   const moodText = pet.dead ? "💀 Necesita revivir..."
-    : isResting            ? `😴 ${pet.name} está descansando y soñando con nuevas aventuras`
+    : isResting            ? `🌙 Está descansando y soñando con nuevas aventuras`
     : urgentVal < 15       ? `⚠️ ${getNeedPhrase(urgentNeed, pet.name)} urgente`
     : urgentVal < 35       ? `${NEED_META[urgentNeed].icon} ${getNeedPhrase(urgentNeed, pet.name)}`
     : expression==="happy" ? `¡${pet.name} está muy feliz! ✨`
@@ -3773,16 +3773,16 @@ function PetHome({ pet, onCare, onRestToggle, onStudy, onCollection, onShop, onS
           </div>
 
           <div style={{ marginBottom:10 }}>
-            <button onClick={()=>{audio.playClick();onStudy("juegos");}} style={{
-              width:"100%", background:"linear-gradient(135deg,#FF4136,#FF8C00)",
-              border:"2px solid #FFD700", borderRadius:18, padding:"14px 10px",
-              cursor:"pointer", boxShadow:"0 5px 0 rgba(0,0,0,.25), 0 0 24px rgba(255,140,0,.28)",
+            <button onClick={()=>{ if(isResting) return; audio.playClick();onStudy("juegos");}} disabled={isResting} style={{
+              width:"100%", background:isResting?"linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.08))":"linear-gradient(135deg,#FF4136,#FF8C00)",
+              border:`2px solid ${isResting?"rgba(255,255,255,.14)":"#FFD700"}`, borderRadius:18, padding:"14px 10px",
+              cursor:isResting?"not-allowed":"pointer", boxShadow:isResting?"none":"0 5px 0 rgba(0,0,0,.25), 0 0 24px rgba(255,140,0,.28)",
               display:"flex", alignItems:"center", justifyContent:"center", gap:10,
-              color:"white", fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:17,
+              color:isResting?"rgba(255,255,255,.72)":"white", fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:17, opacity:isResting?.9:1,
             }}>
-              <span style={{fontSize:25}}>🌎</span>
-              <span>Comenzar aventura</span>
-              <span style={{fontSize:22}}>⭐</span>
+              <span style={{fontSize:25}}>{isResting?"☀️":"🌎"}</span>
+              <span>{isResting?"Despierta para jugar aventura":"Comenzar aventura"}</span>
+              <span style={{fontSize:22}}>{isResting?"🌙":"⭐"}</span>
             </button>
           </div>
 
