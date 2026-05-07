@@ -3046,8 +3046,267 @@ function PetChooser({ onChoose, onCancel }) {
   );
 }
 
+
+// ── Evolution system ──────────────────────────────────
+const EVOLUTION_BASE = [
+  { stage:1, label:"Bebé", minLevel:1, minCompleted:0, minCards:0, minBadges:0, minCare:0, icon:"🥚", reward:"Tu compañero acaba de comenzar su aventura." },
+  { stage:2, label:"Compañero", minLevel:5, minCompleted:10, minCards:3, minBadges:0, minCare:50, icon:"🧸", reward:"Desbloquea más frases y una energía más alegre." },
+  { stage:3, label:"Aventurero", minLevel:12, minCompleted:30, minCards:5, minBadges:2, minCare:60, icon:"🛡️", reward:"Desbloquea aura de aventura y actitud valiente." },
+  { stage:4, label:"Guardián", minLevel:25, minCompleted:75, minCards:10, minBadges:5, minCare:65, icon:"🌟", reward:"Forma especial con brillo legendario." },
+];
+
+const EVOLUTION_NAMES = {
+  fox:     ["Zorrito bebé","Zorrito explorador","Zorrito mágico","Zorrito guardián"],
+  panther: ["Panterita","Pantera veloz","Pantera sombra","Pantera legendaria"],
+  nature:  ["Brotecito","Guardián verde","Espíritu del bosque","Sabio natural"],
+  fire:    ["Chispita","Compañero fuego","Aventurero llama","Guardián solar"],
+  water:   ["Gotita","Compañero agua","Aventurero cristal","Guardián océano"],
+  energy:  ["Rayito","Compañero energía","Aventurero chispa","Guardián relámpago"],
+  dream:   ["Soñador bebé","Compañero luna","Aventurero sueño","Guardián estelar"],
+  star:    ["Estrellita","Compañero brillo","Aventurero luz","Guardián cosmos"],
+};
+
+function getEvolutionNames(species){
+  return EVOLUTION_NAMES[species] || [
+    "Bebé Damigotchi",
+    "Compañero Damigotchi",
+    "Aventurero Damigotchi",
+    "Guardián Damigotchi"
+  ];
+}
+
+function getEvolutionCardTheme(stage){
+  const s = stage || 1;
+  if (s >= 4) return {
+    tag:"🌟 CARTA LEGENDARIA",
+    subtitle:"Tu guardián brilla con una energía épica y protectora.",
+    frame:"linear-gradient(180deg, rgba(255,215,120,.18), rgba(120,70,255,.09))",
+    border:"rgba(255,215,120,.55)",
+    overlay:"radial-gradient(circle at 50% 18%, rgba(255,215,0,.28), transparent 34%), radial-gradient(circle at 50% 68%, rgba(155,89,182,.24), transparent 40%)",
+    halo:"radial-gradient(circle, rgba(255,215,0,.35), rgba(155,89,182,.12) 55%, transparent 72%)",
+    accent:"#FFD700",
+    accentSoft:"rgba(255,215,0,.16)",
+    badgeBg:"linear-gradient(135deg,#FFD700,#FF8C00)",
+    badgeColor:"#241033",
+    sparkleA:"✨", sparkleB:"🌟", sparkleC:"👑",
+  };
+  if (s === 3) return {
+    tag:"🛡️ CARTA AVENTURERA",
+    subtitle:"Tu Damigotchi ya se ve valiente y listo para grandes misiones.",
+    frame:"linear-gradient(180deg, rgba(0,206,209,.16), rgba(255,255,255,.05))",
+    border:"rgba(0,206,209,.45)",
+    overlay:"radial-gradient(circle at 50% 22%, rgba(0,206,209,.28), transparent 38%), radial-gradient(circle at 50% 70%, rgba(52,152,219,.18), transparent 34%)",
+    halo:"radial-gradient(circle, rgba(0,206,209,.28), rgba(255,255,255,.08) 55%, transparent 72%)",
+    accent:"#91FFFF",
+    accentSoft:"rgba(0,206,209,.16)",
+    badgeBg:"linear-gradient(135deg,#00CED1,#5DADE2)",
+    badgeColor:"#10223F",
+    sparkleA:"✦", sparkleB:"✨", sparkleC:"🧭",
+  };
+  if (s === 2) return {
+    tag:"🌙 CARTA COMPAÑERA",
+    subtitle:"Tu compañero ya tiene más brillo, frases nuevas y mucha ternura.",
+    frame:"linear-gradient(180deg, rgba(255,255,255,.10), rgba(155,89,182,.07))",
+    border:"rgba(186,146,255,.38)",
+    overlay:"radial-gradient(circle at 50% 20%, rgba(155,89,182,.32), transparent 40%), radial-gradient(circle at 50% 68%, rgba(255,155,208,.16), transparent 35%)",
+    halo:"radial-gradient(circle, rgba(155,89,182,.32), rgba(255,155,208,.08) 55%, transparent 72%)",
+    accent:"#E3B7FF",
+    accentSoft:"rgba(227,183,255,.14)",
+    badgeBg:"linear-gradient(135deg,#C084FC,#F472B6)",
+    badgeColor:"#26143B",
+    sparkleA:"✨", sparkleB:"❤", sparkleC:"🌙",
+  };
+  return {
+    tag:"✨ CARTA MÁGICA",
+    subtitle:"Tu compañero mágico te acompaña en cada aventura.",
+    frame:"linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04))",
+    border:"rgba(255,255,255,.12)",
+    overlay:"radial-gradient(circle at 50% 22%, rgba(155,89,182,.35), transparent 40%), radial-gradient(circle at 50% 65%, rgba(0,206,209,.16), transparent 35%)",
+    halo:"radial-gradient(circle, rgba(155,89,182,.32), rgba(0,206,209,.06) 55%, transparent 72%)",
+    accent:"#FFD700",
+    accentSoft:"rgba(255,215,0,.12)",
+    badgeBg:"linear-gradient(135deg,#FFD700,#FF8C00)",
+    badgeColor:"#241033",
+    sparkleA:"✨", sparkleB:"✦", sparkleC:"❤",
+  };
+}
+
+function countCompletedAdventureLevels(adventure){
+  return Object.keys(adventure?.completed || {}).length;
+}
+
+function getCareAverage(pet){
+  if(!pet?.needs) return 100;
+  return Math.round(NEEDS.reduce((s,k)=>s+(pet.needs[k] || 0),0) / NEEDS.length);
+}
+
+function getTotalBadgeCount(skills){
+  return SKILL_IDS.reduce((total,id)=>total + (getBadgeLevelForSkill(skills?.[id] || 0) > 0 ? 1 : 0), 0);
+}
+
+function getEvolutionInfo(pet, skills, earnedCards, adventure){
+  const level = getPetStage(pet?.xp || 0).level;
+  const completed = countCompletedAdventureLevels(adventure);
+  const cards = earnedCards?.length || 0;
+  const badges = getTotalBadgeCount(skills || {});
+  const care = getCareAverage(pet);
+
+  const names = getEvolutionNames(pet?.species);
+  const stages = EVOLUTION_BASE.map((base,idx)=>{
+    const okLevel = level >= base.minLevel;
+    const okCompleted = completed >= base.minCompleted;
+    const okCards = cards >= base.minCards;
+    const okBadges = badges >= base.minBadges;
+    const okCare = care >= base.minCare;
+    const unlocked = okLevel && okCompleted && okCards && okBadges && okCare;
+    const requirements = [
+      { label:`Nivel ${base.minLevel}`, ok:okLevel, current:level, target:base.minLevel },
+      { label:`${base.minCompleted} niveles`, ok:okCompleted, current:completed, target:base.minCompleted },
+      { label:`${base.minCards} cartas`, ok:okCards, current:cards, target:base.minCards },
+      { label:`${base.minBadges} insignias`, ok:okBadges, current:badges, target:base.minBadges },
+      { label:`cuidado ${base.minCare}%`, ok:okCare, current:care, target:base.minCare },
+    ];
+    return { ...base, name:names[idx] || base.label, unlocked, requirements };
+  });
+
+  const currentStage = [...stages].reverse().find(s=>s.unlocked) || stages[0];
+  const nextStage = stages.find(s=>!s.unlocked) || null;
+  const nextProgress = nextStage
+    ? Math.round(nextStage.requirements.filter(r=>r.ok).length / nextStage.requirements.length * 100)
+    : 100;
+
+  return { level, completed, cards, badges, care, stages, currentStage, nextStage, nextProgress };
+}
+
+function EvolutionBadge({ stage, current }){
+  return (
+    <div style={{
+      display:"inline-flex",alignItems:"center",gap:6,
+      background: current ? "linear-gradient(135deg,#FFD700,#FF8C00)" : "rgba(255,255,255,.10)",
+      color: current ? "#241033" : "rgba(255,255,255,.82)",
+      border:`2px solid ${current ? "#FFF0A0" : "rgba(255,255,255,.15)"}`,
+      borderRadius:999,padding:"6px 10px",fontWeight:900,fontSize:11,
+      boxShadow: current ? "0 0 18px rgba(255,215,0,.28)" : "none"
+    }}>
+      <span>{stage.icon}</span> <span>{stage.name}</span>
+    </div>
+  );
+}
+
+function EvolutionsScreen({ pet, skills, earnedCards, adventure, onBack }){
+  const info = getEvolutionInfo(pet, skills, earnedCards, adventure);
+  const speciesInfo = PET_SPECIES.find(s=>s.id===pet?.species) || PET_SPECIES[0];
+  return (
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"18px 14px 36px"}}>
+      <BackBtn onClick={onBack}/>
+      <div style={{maxWidth:430,margin:"0 auto",paddingTop:52}}>
+        <div style={{textAlign:"center",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>✨ ÁLBUM DE EVOLUCIONES</div>
+          <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>{pet?.name}</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.65)"}}>Raza {speciesInfo?.emoji} {speciesInfo?.name}</div>
+        </div>
+
+        <div style={{...CARD,padding:16,marginBottom:14,border:"2px solid rgba(255,215,0,.28)"}}>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+            <div style={{width:96,height:96,borderRadius:26,display:"grid",placeItems:"center",background:"radial-gradient(circle,#ffffff33,#ffffff10)",border:"2px solid rgba(255,255,255,.16)",boxShadow:"0 12px 34px rgba(0,0,0,.28)"}}>
+              <PetSprite species={pet.species} expression="happy" xp={pet.xp || 0} size={92} outfit={pet.outfit} action="love"/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:1}}>FORMA ACTUAL</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#FFD700"}}>{info.currentStage.name}</div>
+              <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.70)",lineHeight:1.35,marginTop:4}}>{info.currentStage.reward}</div>
+              <div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
+                <EvolutionBadge stage={info.currentStage} current/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {info.nextStage ? (
+          <div style={{...CARD,padding:14,marginBottom:14,border:"2px solid rgba(0,206,209,.25)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:900,color:"#91FFFF"}}>Próxima evolución</div>
+                <div style={{fontSize:18,fontWeight:900,color:"white"}}>{info.nextStage.icon} {info.nextStage.name}</div>
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:"#FFD700"}}>{info.nextProgress}%</div>
+            </div>
+            <div style={{height:9,background:"rgba(255,255,255,.12)",borderRadius:999,overflow:"hidden",marginTop:10}}>
+              <div style={{height:"100%",width:`${info.nextProgress}%`,background:"linear-gradient(90deg,#FFD700,#2ECC40,#00CED1)",borderRadius:999}}/>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:7,marginTop:10}}>
+              {info.nextStage.requirements.map((r,i)=>(
+                <div key={i} style={{background:r.ok?"rgba(46,204,64,.16)":"rgba(255,255,255,.07)",border:`1px solid ${r.ok?"rgba(46,204,64,.5)":"rgba(255,255,255,.10)"}`,borderRadius:12,padding:"7px 8px",fontSize:11,fontWeight:900,color:r.ok?"#B8FFCC":"rgba(255,255,255,.65)"}}>
+                  {r.ok?"✅":"🔒"} {r.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{...CARD,padding:16,marginBottom:14,textAlign:"center",border:"2px solid rgba(255,215,0,.35)"}}>
+            <div style={{fontSize:32}}>🏆</div>
+            <div style={{fontSize:19,fontWeight:900,color:"#FFD700"}}>¡Forma máxima alcanzada!</div>
+            <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.65)",marginTop:4}}>Tu Damigotchi ya es una leyenda.</div>
+          </div>
+        )}
+
+        <div style={{display:"grid",gap:10}}>
+          {info.stages.map(stage=>{
+            const current = stage.stage === info.currentStage.stage;
+            return (
+              <div key={stage.stage} style={{
+                position:"relative",overflow:"hidden",borderRadius:22,padding:13,
+                background: stage.unlocked ? `linear-gradient(135deg,rgba(255,215,0,.16),rgba(255,255,255,.06))` : "rgba(255,255,255,.045)",
+                border:`2px solid ${current ? "#FFD700" : stage.unlocked ? "rgba(255,255,255,.20)" : "rgba(255,255,255,.08)"}`,
+                boxShadow: current ? "0 0 28px rgba(255,215,0,.20)" : "none",
+                filter: stage.unlocked ? "none" : "grayscale(.7)"
+              }}>
+                <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                  <div style={{width:64,height:64,borderRadius:20,display:"grid",placeItems:"center",background:stage.unlocked?"rgba(255,255,255,.13)":"rgba(0,0,0,.20)",border:"1px solid rgba(255,255,255,.12)"}}>
+                    {stage.unlocked ? <PetSprite species={pet.species} expression={current?"happy":"ok"} xp={(stage.minLevel-1)*6} size={58} outfit={pet.outfit} action={current?"love":"idle"}/> : <div style={{fontSize:30}}>🔒</div>}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:900,color:stage.unlocked?"#FFD700":"rgba(255,255,255,.45)",letterSpacing:1}}>ETAPA {stage.stage}</div>
+                    <div style={{fontSize:17,fontWeight:900,color:"white"}}>{stage.icon} {stage.name}</div>
+                    <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,.58)",lineHeight:1.32,marginTop:3}}>{stage.reward}</div>
+                  </div>
+                  <div style={{fontSize:24}}>{stage.unlocked ? (current ? "📍" : "✅") : "🔒"}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EvolutionReveal({ reveal, pet, onClose, onView }){
+  if(!reveal || !pet) return null;
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:700,background:"rgba(8,6,28,.78)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:18,fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{width:"min(370px,94vw)",borderRadius:30,padding:"26px 20px",textAlign:"center",background:"linear-gradient(160deg,rgba(72,44,150,.98),rgba(36,23,84,.98))",border:"3px solid rgba(255,215,0,.78)",boxShadow:"0 24px 80px rgba(0,0,0,.60),0 0 40px rgba(255,215,0,.30)",color:"white",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,rgba(255,215,0,.25),transparent 38%),radial-gradient(circle at 15% 80%,rgba(0,206,209,.18),transparent 30%)",pointerEvents:"none"}}/>
+        <div style={{position:"relative"}}>
+          <div style={{fontSize:38}}>✨🌟✨</div>
+          <div style={{fontSize:29,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>¡Evolución!</div>
+          <div style={{margin:"14px auto",width:128,height:128,borderRadius:36,display:"grid",placeItems:"center",background:"radial-gradient(circle,#ffffff40,#ffffff10)",border:"2px solid rgba(255,255,255,.18)",boxShadow:"0 0 34px rgba(255,215,0,.25)"}}>
+            <PetSprite species={pet.species} expression="happy" xp={pet.xp || 0} size={118} outfit={pet.outfit} action="love"/>
+          </div>
+          <div style={{fontSize:15,fontWeight:900,color:"rgba(255,255,255,.82)"}}>{pet.name} ahora es</div>
+          <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:3}}>{reveal.stage.icon} {reveal.stage.name}</div>
+          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.70)",margin:"8px 0 16px",lineHeight:1.35}}>{reveal.stage.reward}</div>
+          <button onClick={onView} style={{width:"100%",border:"none",borderRadius:18,padding:"13px 14px",background:"linear-gradient(135deg,#FFD700,#FF8C00)",color:"#241033",fontWeight:900,fontSize:17,fontFamily:"'Nunito',sans-serif",boxShadow:"0 6px 0 rgba(0,0,0,.25)",cursor:"pointer",marginBottom:8}}>Ver evoluciones</button>
+          <button onClick={onClose} style={{width:"100%",border:"2px solid rgba(255,255,255,.15)",borderRadius:16,padding:"10px 14px",background:"rgba(255,255,255,.08)",color:"rgba(255,255,255,.75)",fontWeight:900,fontSize:14,fontFamily:"'Nunito',sans-serif",cursor:"pointer"}}>Seguir jugando</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // ── Pet home screen ────────────────────────────────────
-function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadges, onDiplomas, onSeriesChange, onChangePet, activeSeries,
+function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadges, onDiplomas, onEvolutions, onSeriesChange, onChangePet, activeSeries,
                    earnedCards, skills, totalLvls, nextCardAt, progress, audio }) {
   const stage = getPetStage(pet.xp);
   const expression = getPetExpression(pet.needs, pet.dead);
@@ -3056,6 +3315,9 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
   const si = SERIES_INFO[activeSeries];
   const [careMsg, setCareMsg] = useState(null);
   const [showPicker, setShowPicker] = useState(false);
+  const evoStage = pet.evolutionStage || 1;
+  const evoName = getEvolutionNames(pet.species)[evoStage - 1] || stage.name;
+  const evoTheme = getEvolutionCardTheme(evoStage);
 
   const showMsg = (msg) => { setCareMsg(msg); setTimeout(()=>setCareMsg(null), 2000); };
   const care = (need, amount, msg) => {
@@ -3193,24 +3455,55 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
         })()}
       </div>
 
-      {/* Mood label */}
-      <div style={{ fontSize:13, fontWeight:700, color: urgentVal<15&&!pet.dead?"#FF4136":"rgba(255,255,255,.55)", textAlign:"center", marginBottom:4, animation: urgentVal<15&&!pet.dead?"pulse 1s infinite":"none" }}>
-        {moodText}
-      </div>
+      {/* Magical companion card */}
+      <div style={{
+        width:"100%", maxWidth:400, marginBottom:10,
+        background:evoTheme.frame,
+        border:`2px solid ${evoTheme.border}`, borderRadius:28,
+        padding:"14px 14px 12px", position:"relative", overflow:"hidden",
+        boxShadow:`0 14px 34px rgba(0,0,0,.24), inset 0 0 30px rgba(255,255,255,.04), 0 0 0 1px ${evoTheme.accentSoft}`,
+      }}>
+        <div style={{position:"absolute", inset:0, background:evoTheme.overlay, pointerEvents:"none"}} />
+        <div style={{position:"absolute", top:10, left:18, fontSize:12, color:"rgba(255,255,255,.56)", fontWeight:900, letterSpacing:1.1}}>{evoTheme.tag}</div>
+        <div style={{position:"relative", zIndex:1, display:"flex", flexDirection:"column", alignItems:"center"}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,padding:"6px 12px",borderRadius:999,background:"rgba(255,255,255,.08)",border:`1px solid ${evoTheme.accentSoft}`,marginTop:12,marginBottom:6}}>
+            <span style={{fontSize:11,fontWeight:900,color:evoTheme.accent}}>Forma actual</span>
+            <span style={{fontSize:12,fontWeight:900,color:"white"}}>{evoName}</span>
+          </div>
+          <div style={{ fontSize:15, fontWeight:800, color: urgentVal<15&&!pet.dead?"#FFB3AA":"rgba(255,255,255,.86)", textAlign:"center", marginBottom:2, animation: urgentVal<15&&!pet.dead?"pulse 1s infinite":"none" }}>
+            {moodText}
+          </div>
+          <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.44)", textAlign:"center", marginBottom:8, maxWidth:290 }}>{evoTheme.subtitle}</div>
 
-      {/* Pet display */}
-      <div style={{ position:"relative", marginBottom:6, cursor:"pointer" }}
-           onClick={()=>!pet.dead&&care("love",8,`¡${pet.name} te adora! ❤️`)}>
-        <PetSprite species={pet.species} expression={expression} xp={pet.xp} size={130} outfit={pet.outfit} action={pet.action}/>
-        {!pet.dead && <div style={{ position:"absolute", bottom:-4, left:"50%", transform:"translateX(-50%)", fontSize:10, color:"rgba(255,255,255,.3)", fontFamily:"'Nunito',sans-serif", whiteSpace:"nowrap" }}>Toca para dar cariño ❤️</div>}
-      </div>
+          <div style={{ position:"relative", width:"100%", minHeight:196, display:"grid", placeItems:"center", marginBottom:8, cursor:"pointer" }}
+               onClick={()=>!pet.dead&&care("love",8,`¡${pet.name} te adora! ❤️`)}>
+            <div style={{ position:"absolute", width:evoStage>=4?230:evoStage>=3?218:205, height:evoStage>=4?230:evoStage>=3?218:205, borderRadius:"50%", background:evoTheme.halo, filter:"blur(4px)" }} />
+            <div style={{ position:"absolute", bottom:18, width:190, height:30, borderRadius:"50%", background:"radial-gradient(circle, rgba(0,0,0,.32), rgba(0,0,0,0) 72%)" }} />
+            <div style={{ position:"absolute", top:10, right:50, fontSize:16, color:evoTheme.accent, opacity:.95 }}>{evoTheme.sparkleA}</div>
+            <div style={{ position:"absolute", top:34, left:54, fontSize:12, color:evoTheme.accent, opacity:.8 }}>{evoTheme.sparkleB}</div>
+            <div style={{ position:"absolute", top:18, left:76, fontSize:12, color:"#FF9BD0", opacity:.85 }}>{evoTheme.sparkleC}</div>
+            {evoStage >= 3 && <div style={{ position:"absolute", bottom:34, right:62, fontSize:12, color:evoTheme.accent, opacity:.78 }}>✦</div>}
+            {evoStage >= 4 && <div style={{ position:"absolute", top:54, right:70, fontSize:14, color:"#FFD700", opacity:.88 }}>👑</div>}
+            <PetSprite species={pet.species} expression={expression} xp={pet.xp} size={evoStage>=4?164:evoStage>=3?158:152} outfit={pet.outfit} action={pet.action}/>
+            <div style={{ position:"absolute", bottom:8, left:"50%", transform:"translateX(-50%)", fontSize:11, color:"rgba(255,255,255,.55)", fontFamily:"'Nunito',sans-serif", whiteSpace:"nowrap", fontWeight:800 }}>Toca para dar cariño ❤️</div>
+          </div>
 
-      {/* Care message */}
-      {careMsg && (
-        <div style={{ background:"rgba(255,255,255,.14)", borderRadius:18, padding:"7px 16px", fontSize:14, fontWeight:700, color:"white", animation:"correctPop .3s ease", marginBottom:6, textAlign:"center", maxWidth:280 }}>
-          {careMsg}
+          {careMsg ? (
+            <div style={{ background:"linear-gradient(135deg, rgba(255,255,255,.20), rgba(255,255,255,.12))", border:"1.5px solid rgba(255,255,255,.16)", borderRadius:18, padding:"8px 16px", fontSize:14, fontWeight:800, color:"white", animation:"correctPop .3s ease", textAlign:"center", maxWidth:300 }}>
+              {careMsg}
+            </div>
+          ) : (
+            <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",justifyContent:"center" }}>
+              <div style={{ background:evoTheme.badgeBg, color:evoTheme.badgeColor, borderRadius:16, padding:"7px 12px", fontSize:12, fontWeight:900, boxShadow:"0 4px 0 rgba(0,0,0,.18)" }}>
+                {EVOLUTION_BASE[evoStage-1]?.icon || "✨"} {evoName}
+              </div>
+              <div style={{ background:"rgba(255,255,255,.08)", border:`1px solid ${evoTheme.accentSoft}`, borderRadius:16, padding:"7px 12px", fontSize:11, fontWeight:800, color:"rgba(255,255,255,.72)", textAlign:"center" }}>
+                Etapa {evoStage} · {EVOLUTION_BASE[evoStage-1]?.label || "Forma"}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Vida suave: sin barras ni castigos, solo mensajes y cuidado emocional */}
       <SoftLifePanel
@@ -3240,6 +3533,9 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
                 </button>
                 <button onClick={()=>{audio.playClick();onDiplomas();}} style={{ background:"rgba(0,206,209,.16)", border:"2px solid #00CED1", borderRadius:8, padding:"3px 8px", cursor:"pointer", color:"#91FFFF", fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
                   📜 Diplomas
+                </button>
+                <button onClick={()=>{audio.playClick();onEvolutions && onEvolutions();}} style={{ background:"rgba(255,105,180,.16)", border:"2px solid #FF69B4", borderRadius:8, padding:"3px 8px", cursor:"pointer", color:"#FFB6DA", fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
+                  ✨ Evoluciones
                 </button>
                 <button onClick={()=>{audio.playClick();setShowPicker(p=>!p);}} style={{ background:`${si.color}33`, border:`2px solid ${si.color}`, borderRadius:8, padding:"3px 8px", cursor:"pointer", color:si.color, fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:10 }}>
                   {si.icon} {showPicker?"▲":"▼"}
@@ -4698,6 +4994,7 @@ export default function App(){
   const audio = useAudio();
   const [adventure, setAdventure] = useState(()=>{ try { return JSON.parse(localStorage.getItem("damigotchi_adventure_v3")||"null") || { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } catch { return { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } });
   const [levelComplete, setLevelComplete] = useState(null);
+  const [evolutionReveal, setEvolutionReveal] = useState(null);
 
   // Desbloqueo de audio para celulares/tablets.
   // Safari/Chrome móvil exigen una interacción real del usuario antes de reproducir música.
@@ -4726,6 +5023,18 @@ export default function App(){
 
   useEffect(()=>{ try { if(pet) localStorage.setItem("damigotchi_pet_v2", JSON.stringify(normalizePet(pet))); } catch {} }, [pet]);
   useEffect(()=>{ try { localStorage.setItem("damigotchi_adventure_v3", JSON.stringify(adventure)); } catch {} }, [adventure]);
+
+  useEffect(()=>{
+    if(!pet) return;
+    const info = getEvolutionInfo(pet, skills, earnedCards, adventure);
+    const storedStage = pet.evolutionStage || 1;
+    if(info.currentStage.stage > storedStage){
+      const newStage = info.currentStage;
+      setPet(p => p ? normalizePet({ ...p, evolutionStage:newStage.stage, action:"love" }) : p);
+      setEvolutionReveal({ stage:newStage, at:Date.now() });
+    }
+  }, [pet, skills, earnedCards, adventure]);
+
 
   // Refs to avoid stale closures
   const earnedRef  = useRef([]);
@@ -4957,6 +5266,7 @@ export default function App(){
           onSkills={()=>setScreen("skills")}
           onBadges={()=>setScreen("badges")}
           onDiplomas={()=>setScreen("diplomas")}
+          onEvolutions={()=>setScreen("evolutions")}
           onSeriesChange={s=>{ setActiveSeries(s); seriesRef.current=s; }}
           activeSeries={activeSeries} earnedCards={earnedCards}
           skills={skills} totalLvls={totalLvls} nextCardAt={nextCardAt}
@@ -4968,6 +5278,7 @@ export default function App(){
       {screen==="skills"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
       {screen==="badges"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><BadgesScreen skills={skills} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
       {screen==="diplomas"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="evolutions" && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><EvolutionsScreen pet={pet} skills={skills} earnedCards={earnedCards} adventure={adventure} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
       {screen==="shop"       && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><WardrobeScreen pet={normalizePet(pet)} onBack={()=>setScreen("home")} onBuy={buyClothing} onEquip={equipClothing} onUnequip={unequipClothing} audio={audio}/></ScreenShellWithHeader>}
       {screen==="letras"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><LettersMode   audio={audio} onBack={exitToAdventure} onScore={makeOnScore("letras")}/></ScreenShellWithHeader>} 
       {screen==="sumas"      && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MathMode mode="add" audio={audio} onBack={exitToAdventure} onScore={makeOnScore("sumas")}/></ScreenShellWithHeader>} 
@@ -4986,6 +5297,7 @@ export default function App(){
         <GameTopHeader pet={pet} onHome={()=>setScreen("home")}/>
         <MiniPetHud pet={pet} onHome={()=>setScreen("home")}/>
       </>}
+      <EvolutionReveal reveal={evolutionReveal} pet={pet} onClose={()=>setEvolutionReveal(null)} onView={()=>{setEvolutionReveal(null);setScreen("evolutions");}}/>
       <LevelCompleteOverlay complete={levelComplete} onContinue={()=>{setLevelComplete(null);setScreen("adventure");}}/>
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
       <FooterAutor/>
