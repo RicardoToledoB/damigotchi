@@ -622,11 +622,11 @@ function LettersMode({audio,onBack,onScore}){
     else { audio.playWrong(); setTimeout(next,1500); }
   };
   return(
-    <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,fontFamily:"'Nunito',sans-serif",position:"relative"}}>
+    <div style={{minHeight:"calc(100vh - 132px)",background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",padding:"8px 20px 24px",fontFamily:"'Nunito',sans-serif",position:"relative"}}>
       <StarBurst show={burst}/>
       <BackBtn onClick={onBack}/>
       <SoundBar audio={audio}/>
-      <div style={{fontSize:15,fontWeight:700,color:"rgba(255,255,255,.5)",marginBottom:6,letterSpacing:2}}>ABC — APRENDE LAS LETRAS</div>
+      <div style={{fontSize:15,fontWeight:700,color:"rgba(255,255,255,.5)",marginBottom:4,letterSpacing:2}}>ABC — APRENDE LAS LETRAS</div>
       <ScoreBar score={score} streak={0}/>
       <div key={animKey} style={{...CARD,padding:"32px 28px",display:"flex",flexDirection:"column",alignItems:"center",gap:22,animation:"fadeSlide .35s ease-out",minWidth:320,maxWidth:420,width:"100%"}}>
         <div style={{fontSize:90,animation:"letterPop .5s ease",lineHeight:1}}>{item.emoji}</div>
@@ -2467,6 +2467,8 @@ function normalizePet(pet){
     ...pet,
     stars: pet?.stars ?? 0,
     action: pet?.action ?? "idle",
+    resting: pet?.resting ?? false,
+    lastRestedAt: pet?.lastRestedAt ?? null,
     ownedClothes: pet?.ownedClothes ?? [],
     outfit: { ...emptyOutfit, ...(pet?.outfit || {}) },
   };
@@ -3336,7 +3338,7 @@ function InfoCard({ icon, title, children, accent="#FFD700" }){
         <div style={{fontSize:26}}>{icon}</div>
         <div style={{fontSize:16,fontWeight:900,color:accent}}>{title}</div>
       </div>
-      <div style={{fontSize:13,fontWeight:800,lineHeight:1.45,color:"rgba(255,255,255,.72)"}}>{children}</div>
+      <div style={{fontSize:14,fontWeight:800,lineHeight:1.5,color:"rgba(255,255,255,.76)"}}>{children}</div>
     </div>
   );
 }
@@ -3349,7 +3351,7 @@ function ParentsScreen({ onBack }){
         <div style={{textAlign:"center",marginBottom:6}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>ZONA PARA PADRES</div>
           <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Damigotchi en familia</div>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.68)",marginTop:5,lineHeight:1.35}}>Una experiencia educativa breve, positiva y acompañada.</div>
+          <div style={{fontSize:14,fontWeight:800,color:"rgba(255,255,255,.72)",marginTop:6,lineHeight:1.45}}>Una experiencia educativa breve, positiva y acompañada.</div>
         </div>
         <InfoCard icon="🎯" title="Qué aprende el niño" accent="#00CED1">Refuerza letras, palabras, sumas, restas, creatividad, memoria y constancia mediante desafíos cortos. La mascota crece con el aprendizaje y motiva a volver con calma.</InfoCard>
         <InfoCard icon="👶" title="Edad recomendada" accent="#FF69B4">Pensado principalmente para niños y niñas de 4 a 10 años. Para menores de 4 años se recomienda uso acompañado, priorizando pintar, globos, sonidos y cuidado de la mascota.</InfoCard>
@@ -3379,6 +3381,7 @@ function ProgressBackupScreen({ pet, skills, earnedCards, adventure, activeSerie
   const snapshot = makeProgressSnapshot({ pet, skills, earnedCards, adventure, activeSeries });
   const [text, setText] = useState("");
   const [msg, setMsg] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const json = JSON.stringify(snapshot,null,2);
   const download = () => {
     try {
@@ -3391,23 +3394,27 @@ function ProgressBackupScreen({ pet, skills, earnedCards, adventure, activeSerie
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      setConfirmClear(false);
       setMsg("✅ Progreso exportado como archivo JSON.");
     } catch {
+      setConfirmClear(false);
       setMsg("⚠️ No pude descargar el archivo, pero puedes copiar el texto.");
     }
   };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(json); setMsg("✅ Copia de progreso copiada al portapapeles."); }
-    catch { setMsg("⚠️ Copia manual el texto del respaldo."); }
+    try { await navigator.clipboard.writeText(json); setConfirmClear(false); setMsg("✅ Copia de progreso copiada al portapapeles."); }
+    catch { setConfirmClear(false); setMsg("⚠️ Copia manual el texto del respaldo."); }
   };
   const restore = () => {
     try {
       const data = JSON.parse(text);
       if (!data.pet || !data.skills || !data.adventure) throw new Error("Formato incompleto");
       onRestore && onRestore(data);
+      setConfirmClear(false);
       setMsg("✅ Progreso restaurado. Volviendo al inicio...");
       setTimeout(onBack, 800);
     } catch {
+      setConfirmClear(false);
       setMsg("❌ No se pudo restaurar. Revisa que sea un respaldo válido de Damigotchi.");
     }
   };
@@ -3418,28 +3425,41 @@ function ProgressBackupScreen({ pet, skills, earnedCards, adventure, activeSerie
         <div style={{textAlign:"center",marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>RESPALDO LOCAL</div>
           <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Guardar aventura</div>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.62)",marginTop:4,lineHeight:1.35}}>Este respaldo guarda la aventura local de tu Damigotchi. Más adelante podrás usar una cuenta familiar.</div>
+          <div style={{fontSize:14,fontWeight:800,color:"rgba(255,255,255,.70)",marginTop:5,lineHeight:1.45}}>Este respaldo guarda la aventura local de tu Damigotchi. Más adelante podrás usar una cuenta familiar.</div>
         </div>
         <div style={{...CARD,padding:12,marginBottom:12,border:"2px solid rgba(0,206,209,.18)"}}>
-          <div style={{fontSize:13,fontWeight:900,color:"#91FFFF",marginBottom:5}}>📦 Qué guarda este respaldo</div>
-          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.70)",lineHeight:1.45}}>Mascota, evolución, estrellas, mapa, materias, cartas, diplomas, recuerdos y configuración de colección.</div>
+          <div style={{fontSize:14,fontWeight:900,color:"#91FFFF",marginBottom:6}}>📦 Qué guarda este respaldo</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.76)",lineHeight:1.5}}>Mascota, evolución, estrellas, mapa, materias, cartas, diplomas, recuerdos y configuración de colección.</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:12}}>
           <button onClick={download} style={{background:"linear-gradient(135deg,#FFD700,#FF8C00)",border:"none",borderRadius:16,padding:"13px 10px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#241033",fontSize:15,boxShadow:"0 5px 0 rgba(0,0,0,.25)",cursor:"pointer"}}>💾 Descargar</button>
           <button onClick={copy} style={{background:"rgba(255,255,255,.10)",border:"2px solid rgba(255,255,255,.18)",borderRadius:16,padding:"13px 10px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"white",fontSize:15,boxShadow:"0 5px 0 rgba(0,0,0,.18)",cursor:"pointer"}}>📋 Copiar</button>
         </div>
-        {msg && <div style={{background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)",borderRadius:16,padding:10,marginBottom:12,fontSize:13,fontWeight:900,textAlign:"center"}}>{msg}</div>}
+        {msg && <div style={{background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)",borderRadius:16,padding:10,marginBottom:12,fontSize:14,fontWeight:900,textAlign:"center",lineHeight:1.4}}>{msg}</div>}
         <div style={{...CARD,padding:14,marginBottom:12}}>
-          <div style={{fontSize:15,fontWeight:900,color:"#91FFFF",marginBottom:8}}>Resumen del progreso</div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,fontSize:12,fontWeight:900,color:"rgba(255,255,255,.75)"}}>
+          <div style={{fontSize:16,fontWeight:900,color:"#91FFFF",marginBottom:8}}>Resumen del progreso</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8,fontSize:13,fontWeight:900,color:"rgba(255,255,255,.80)",lineHeight:1.35}}>
             <div>🦊 Mascota: {pet?.name}</div><div>⭐ Estrellas: {pet?.stars || 0}</div>
             <div>🃏 Cartas: {earnedCards?.length || 0}</div><div>🌎 Niveles: {countCompletedAdventureLevels(adventure)}</div>
           </div>
         </div>
-        <div style={{fontSize:12,fontWeight:900,color:"rgba(255,255,255,.55)",margin:"10px 0 6px"}}>Restaurar respaldo</div>
-        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Pega aquí un respaldo JSON de Damigotchi..." style={{width:"100%",minHeight:110,borderRadius:16,border:"2px solid rgba(255,255,255,.14)",background:"rgba(255,255,255,.08)",color:"white",padding:12,fontFamily:"monospace",fontSize:11,outline:"none"}} />
+        <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.62)",margin:"12px 0 7px"}}>Restaurar respaldo</div>
+        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Pega aquí un respaldo JSON de Damigotchi..." style={{width:"100%",minHeight:110,borderRadius:16,border:"2px solid rgba(255,255,255,.14)",background:"rgba(255,255,255,.08)",color:"white",padding:12,fontFamily:"monospace",fontSize:12,outline:"none",lineHeight:1.45}} />
         <button onClick={restore} disabled={!text.trim()} style={{width:"100%",marginTop:8,background:text.trim()?"linear-gradient(135deg,#2ECC40,#88FF6A)":"rgba(255,255,255,.10)",border:"none",borderRadius:16,padding:"12px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:text.trim()?"#153016":"rgba(255,255,255,.35)",fontSize:15,cursor:text.trim()?"pointer":"default"}}>♻️ Restaurar progreso</button>
-        <button onClick={()=>{ if(confirm("¿Seguro que quieres borrar el progreso local de este navegador?")){ localStorage.clear(); setMsg("🧹 Progreso local limpiado. Recarga la página para comenzar de nuevo."); } }} style={{width:"100%",marginTop:10,background:"rgba(255,65,54,.12)",border:"2px solid rgba(255,65,54,.35)",borderRadius:16,padding:"11px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#FFD7D7",fontSize:13,cursor:"pointer"}}>🧹 Limpiar progreso local</button>
+        {confirmClear && <div style={{marginTop:10,marginBottom:8,background:"rgba(255,65,54,.12)",border:"2px solid rgba(255,65,54,.24)",borderRadius:16,padding:"10px 12px",fontSize:13,fontWeight:900,color:"#FFD7D7",lineHeight:1.45,textAlign:"center"}}>⚠️ Esta acción borrará el avance guardado en este navegador. Para continuar, toca nuevamente el botón rojo.</div>}
+        <button onClick={()=>{
+          if(!confirmClear){
+            setConfirmClear(true);
+            setMsg("⚠️ Confirmación 1 de 2: toca otra vez para borrar el progreso local.");
+            return;
+          }
+          if(confirm("¿Confirmas que deseas borrar el progreso local de este navegador? Esta acción no se puede deshacer.")){
+            localStorage.clear();
+            setConfirmClear(false);
+            setMsg("🧹 Progreso local limpiado. Recarga la página para comenzar de nuevo.");
+          }
+        }} style={{width:"100%",marginTop:10,background:confirmClear?"linear-gradient(135deg,#FF4136,#C70039)":"rgba(255,65,54,.12)",border:`2px solid ${confirmClear?"#FF9B9B":"rgba(255,65,54,.35)"}`,borderRadius:16,padding:"12px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:confirmClear?"white":"#FFD7D7",fontSize:14,cursor:"pointer",boxShadow:confirmClear?"0 8px 22px rgba(255,65,54,.28)":"none"}}>{confirmClear?"⚠️ Confirmar borrado definitivo":"🧹 Limpiar progreso local"}</button>
+        {confirmClear && <button onClick={()=>{setConfirmClear(false); setMsg("✅ Borrado cancelado. Tu progreso sigue guardado.");}} style={{width:"100%",marginTop:8,background:"rgba(255,255,255,.08)",border:"2px solid rgba(255,255,255,.16)",borderRadius:16,padding:"11px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"rgba(255,255,255,.84)",fontSize:14,cursor:"pointer"}}>Seguir conservando mi progreso</button>}
       </div>
     </div>
   );
@@ -3466,20 +3486,20 @@ function MemoriesScreen({ pet, skills, earnedCards, adventure, onBack }){
         <div style={{textAlign:"center",marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>ÁLBUM DE RECUERDOS</div>
           <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Mis recuerdos</div>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.62)",marginTop:4}}>Los momentos importantes de {pet?.name || "tu Damigotchi"}.</div>
+          <div style={{fontSize:14,fontWeight:800,color:"rgba(255,255,255,.70)",marginTop:5,lineHeight:1.4}}>Los momentos importantes de {pet?.name || "tu Damigotchi"}.</div>
         </div>
         <div style={{...CARD,padding:16,marginBottom:12,border:"2px solid rgba(255,215,0,.25)",textAlign:"center"}}>
           <PetSprite species={pet.species} expression="happy" xp={pet.xp || 0} size={112} outfit={pet.outfit} action="love"/>
-          <div style={{fontSize:18,fontWeight:900,color:"#FFD700"}}>{pet?.name}</div>
-          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.65)"}}>“Cada logro también es un recuerdo.”</div>
+          <div style={{fontSize:20,fontWeight:900,color:"#FFD700",marginTop:2}}>{pet?.name}</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.72)",lineHeight:1.4}}>“Cada logro también es un recuerdo.”</div>
         </div>
         <div style={{display:"grid",gap:10}}>
           {memories.map((m,i)=>(
             <div key={i} style={{display:"flex",gap:12,alignItems:"center",background:"rgba(255,255,255,.07)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:12,boxShadow:"0 8px 20px rgba(0,0,0,.18)"}}>
               <div style={{width:46,height:46,borderRadius:16,display:"grid",placeItems:"center",fontSize:24,background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)"}}>{m.icon}</div>
               <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:900,color:"white"}}>{m.title}</div>
-                <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.62)",lineHeight:1.35}}>{m.text}</div>
+                <div style={{fontSize:16,fontWeight:900,color:"white"}}>{m.title}</div>
+                <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.70)",lineHeight:1.45}}>{m.text}</div>
               </div>
             </div>
           ))}
@@ -3490,7 +3510,7 @@ function MemoriesScreen({ pet, skills, earnedCards, adventure, onBack }){
 }
 
 // ── Pet home screen ────────────────────────────────────
-function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadges, onDiplomas, onEvolutions, onParents, onMemories, onBackup, onSeriesChange, onChangePet, activeSeries,
+function PetHome({ pet, onCare, onRestToggle, onStudy, onCollection, onShop, onSkills, onBadges, onDiplomas, onEvolutions, onParents, onMemories, onBackup, onSeriesChange, onChangePet, activeSeries,
                    earnedCards, skills, totalLvls, nextCardAt, progress, audio }) {
   const stage = getPetStage(pet.xp);
   const expression = getPetExpression(pet.needs, pet.dead);
@@ -3502,6 +3522,9 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
   const evoStage = pet.evolutionStage || 1;
   const evoName = getEvolutionNames(pet.species)[evoStage - 1] || stage.name;
   const evoTheme = getEvolutionCardTheme(evoStage);
+  const isResting = !!pet.resting;
+  const petExpression = isResting ? "urgent_sleep" : expression;
+  const petAction = isResting ? "sleep" : pet.action;
 
   const showMsg = (msg) => { setCareMsg(msg); setTimeout(()=>setCareMsg(null), 2000); };
   const care = (need, amount, msg) => {
@@ -3513,12 +3536,13 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
 
   // mood description
   const moodText = pet.dead ? "💀 Necesita revivir..."
+    : isResting            ? `😴 ${pet.name} está descansando y soñando con nuevas aventuras`
     : urgentVal < 15       ? `⚠️ ${getNeedPhrase(urgentNeed, pet.name)} urgente`
     : urgentVal < 35       ? `${NEED_META[urgentNeed].icon} ${getNeedPhrase(urgentNeed, pet.name)}`
     : expression==="happy" ? `¡${pet.name} está muy feliz! ✨`
     : expression==="ok"    ? `${pet.name} está tranquilo y contento 😊`
     : `${pet.name} quiere un poquito de atención 💜`;
-  const homeHint = getAdventureHint(pet, { maxUnlocked: Math.max(1, totalSkillPoints(skills)) });
+  const homeHint = isResting ? "Tu aventura está guardada. Despierta a tu Damigotchi cuando quieras seguir." : getAdventureHint(pet, { maxUnlocked: Math.max(1, totalSkillPoints(skills)) });
 
   return (
     <div style={{
@@ -3661,7 +3685,7 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
           <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.44)", textAlign:"center", marginBottom:8, maxWidth:290 }}>{evoTheme.subtitle}</div>
 
           <div style={{ position:"relative", width:"100%", minHeight:196, display:"grid", placeItems:"center", marginBottom:8, cursor:"pointer" }}
-               onClick={()=>!pet.dead&&care("love",8,`¡${pet.name} te adora! ❤️`)}>
+               onClick={()=>!pet.dead && !isResting && care("love",8,`¡${pet.name} te adora! ❤️`)}>
             <div style={{ position:"absolute", width:evoStage>=4?230:evoStage>=3?218:205, height:evoStage>=4?230:evoStage>=3?218:205, borderRadius:"50%", background:evoTheme.halo, filter:"blur(4px)" }} />
             <div style={{ position:"absolute", bottom:18, width:190, height:30, borderRadius:"50%", background:"radial-gradient(circle, rgba(0,0,0,.32), rgba(0,0,0,0) 72%)" }} />
             <div style={{ position:"absolute", top:10, right:50, fontSize:16, color:evoTheme.accent, opacity:.95 }}>{evoTheme.sparkleA}</div>
@@ -3669,8 +3693,8 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
             <div style={{ position:"absolute", top:18, left:76, fontSize:12, color:"#FF9BD0", opacity:.85 }}>{evoTheme.sparkleC}</div>
             {evoStage >= 3 && <div style={{ position:"absolute", bottom:34, right:62, fontSize:12, color:evoTheme.accent, opacity:.78 }}>✦</div>}
             {evoStage >= 4 && <div style={{ position:"absolute", top:54, right:70, fontSize:14, color:"#FFD700", opacity:.88 }}>👑</div>}
-            <PetSprite species={pet.species} expression={expression} xp={pet.xp} size={evoStage>=4?164:evoStage>=3?158:152} outfit={pet.outfit} action={pet.action}/>
-            <div style={{ position:"absolute", bottom:8, left:"50%", transform:"translateX(-50%)", fontSize:11, color:"rgba(255,255,255,.55)", fontFamily:"'Nunito',sans-serif", whiteSpace:"nowrap", fontWeight:800 }}>Toca para dar cariño ❤️</div>
+            <PetSprite species={pet.species} expression={petExpression} xp={pet.xp} size={evoStage>=4?164:evoStage>=3?158:152} outfit={pet.outfit} action={petAction}/>
+            <div style={{ position:"absolute", bottom:8, left:"50%", transform:"translateX(-50%)", fontSize:11, color:"rgba(255,255,255,.55)", fontFamily:"'Nunito',sans-serif", whiteSpace:"nowrap", fontWeight:800 }}>{isResting ? "Descansando con dulces sueños 🌙" : "Toca para dar cariño ❤️"}</div>
           </div>
 
           {careMsg ? (
@@ -3694,8 +3718,14 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
         👉 {homeHint}
       </div>
 
+      <div style={{width:"100%",maxWidth:400,margin:"0 0 12px",padding:"11px 12px",borderRadius:20,background:isResting?"linear-gradient(135deg,rgba(155,89,182,.22),rgba(0,206,209,.10))":"rgba(255,255,255,.055)",border:`2px solid ${isResting?"rgba(227,183,255,.42)":"rgba(255,255,255,.10)"}`,boxShadow:isResting?"0 12px 32px rgba(0,0,0,.24), 0 0 22px rgba(155,89,182,.18)":"none",textAlign:"center"}}>
+        <div style={{fontSize:14,fontWeight:900,color:isResting?"#E3B7FF":"rgba(255,255,255,.75)",marginBottom:8}}>{isResting ? `🌙 ${pet.name} está en modo descanso` : "¿Terminaste por hoy?"}</div>
+        <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.62)",lineHeight:1.4,marginBottom:10}}>{isResting ? "Su aventura está guardada. No pierde progreso ni se castiga por descansar." : "Puedes dejar a tu Damigotchi durmiendo y volver cuando quieras."}</div>
+        <button onClick={()=>{audio.playClick(); onRestToggle && onRestToggle(!isResting);}} style={{width:"100%",border:"none",borderRadius:16,padding:"12px 14px",background:isResting?"linear-gradient(135deg,#FFD700,#FF8C00)":"linear-gradient(135deg,#9B59B6,#5DADE2)",color:isResting?"#241033":"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:15,boxShadow:"0 5px 0 rgba(0,0,0,.22)",cursor:"pointer"}}>{isResting ? "☀️ Despertar y seguir" : "😴 Descansar"}</button>
+      </div>
+
       {/* Vida suave: sin barras ni castigos, solo mensajes y cuidado emocional */}
-      <SoftLifePanel
+      {!isResting && <SoftLifePanel
         pet={pet}
         urgentNeed={urgentNeed}
         urgentVal={urgentVal}
@@ -3703,7 +3733,7 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
         audio={audio}
         onStudy={onStudy}
         onCollection={onCollection}
-      />
+      />}
 
       {/* Study + cards */}
       {!pet.dead && (
@@ -3780,7 +3810,7 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
             })}
           </div>
 
-          <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", fontWeight:700, margin:"12px 0 6px", textAlign:"center", letterSpacing:1 }}>FAMILIA Y RECUERDOS</div>
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", fontWeight:700, margin:"12px 0 6px", textAlign:"center", letterSpacing:1 }}>FAMILIA Y RESPALDO</div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:7, marginBottom:4 }}>
             {[
               {emoji:"👨‍👩‍👧",label:"Padres",sub:"Guía",fn:onParents,color:"#00CED1"},
@@ -5049,14 +5079,14 @@ function MiniPetHud({ pet, onHome }){
   const msg = getSoftNeedMessage(urgent, pet.name || "Damigotchi");
   const warning = val < 42;
   const stage = getPetStage(pet.xp || 0);
-  const expression = getPetExpression(pet.needs || {}, pet.dead);
-  const alertText = warning ? `${msg.icon} ${msg.text}` : "me acompaña mientras juego ✨";
+  const expression = pet.resting ? "urgent_sleep" : getPetExpression(pet.needs || {}, pet.dead);
+  const alertText = pet.resting ? "está descansando con dulces sueños 🌙" : warning ? `${msg.icon} ${msg.text}` : "me acompaña mientras juego ✨";
   return (
     <div style={{position:"fixed",top:58,left:8,right:8,zIndex:255,pointerEvents:"none",fontFamily:"'Nunito',sans-serif"}}>
       <div style={{maxWidth:430,margin:"0 auto"}}>
         <div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,rgba(255,255,255,.11),rgba(255,255,255,.05))",border:`2px solid ${warning?"rgba(255,65,54,.55)":"rgba(255,255,255,.16)"}`,boxShadow:warning?"0 8px 24px rgba(255,65,54,.20), 0 8px 24px rgba(0,0,0,.25)":"0 8px 24px rgba(0,0,0,.28)",backdropFilter:"blur(12px)",borderRadius:18,padding:"8px 10px"}}>
           <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,.09)",display:"grid",placeItems:"center",overflow:"hidden",flexShrink:0,border:"1px solid rgba(255,255,255,.14)"}}>
-            <PetSprite species={pet.species} expression={expression} xp={pet.xp || 0} size={52} outfit={pet.outfit} action={pet.action}/>
+            <PetSprite species={pet.species} expression={expression} xp={pet.xp || 0} size={52} outfit={pet.outfit} action={pet.resting ? "sleep" : pet.action}/>
           </div>
           <div style={{minWidth:0,flex:1}}>
             <div style={{display:"flex",alignItems:"baseline",gap:6,whiteSpace:"nowrap",overflow:"hidden"}}>
@@ -5106,8 +5136,8 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
   }, [currentLevel]);
 
   return (
-    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"14px 14px 32px",overflowY:"auto"}}>
-      <div style={{maxWidth:430,margin:"0 auto",paddingTop: 42}}>
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"14px 14px 110px",overflowY:"auto"}}>
+      <div style={{maxWidth:430,margin:"0 auto",paddingTop: 42, paddingBottom: 84}}>
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>🌎 AVENTURA DAMIGOTCHI</div>
           <div style={{fontSize:28,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.25)"}}>Camino del Aprendizaje</div>
@@ -5118,7 +5148,7 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
             <span style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.78)"}}>{currentNode.label}</span>
           </div>
         </div>
-        <div style={{position:"relative",borderRadius:28,padding:"24px 16px",background:"linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035))",border:"2px solid rgba(255,255,255,.12)",boxShadow:"0 22px 70px rgba(0,0,0,.38)",overflow:"hidden"}}>
+        <div style={{position:"relative",borderRadius:28,padding:"24px 16px 96px",background:"linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035))",border:"2px solid rgba(255,255,255,.12)",boxShadow:"0 22px 70px rgba(0,0,0,.38)",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 20% 8%,rgba(255,215,0,.18),transparent 18%),radial-gradient(circle at 85% 30%,rgba(46,204,64,.16),transparent 20%),radial-gradient(circle at 35% 70%,rgba(0,206,209,.14),transparent 25%)",pointerEvents:"none"}}/>
           <svg style={{position:"absolute",left:0,top:0,width:"100%",height:"100%",pointerEvents:"none",opacity:.42}} viewBox={`0 0 400 ${nodes.length*112}`} preserveAspectRatio="none">
             <path d={`M200 45 ${nodes.map((_,i)=>`C ${i%2?60:340} ${95+i*112}, ${i%2?340:60} ${130+i*112}, 200 ${180+i*112}`).join(' ')}`} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="10" strokeLinecap="round" strokeDasharray="20 18"/>
@@ -5287,7 +5317,7 @@ export default function App(){
   useEffect(()=>{
     const iv = setInterval(()=>{
       setPet(p => {
-        if (!p || p.dead) return p;
+        if (!p || p.dead || p.resting) return p;
         const n = {};
         NEEDS.forEach(k => { n[k] = Math.max(0, p.needs[k] - NEED_META[k].decay * 5); });
         const zeros = NEEDS.filter(k => n[k] <= 0).length;
@@ -5304,6 +5334,17 @@ export default function App(){
     }
     setPet(p => p ? normalizePet({ ...p, action:need, needs:{ ...p.needs, [need]: Math.min(100, p.needs[need]+amount) } }) : p);
     setTimeout(()=>setPet(p => p ? { ...p, action:"idle" } : p), 2200);
+  }, []);
+
+  const handleRestToggle = useCallback((resting) => {
+    setPet(p => p ? normalizePet({
+      ...p,
+      resting,
+      lastRestedAt: resting ? new Date().toISOString() : p.lastRestedAt,
+      action: resting ? "sleep" : "love",
+      needs: resting ? { ...p.needs, sleep:Math.min(100,(p.needs.sleep||0)+12), love:Math.min(100,(p.needs.love||0)+4) } : p.needs,
+    }) : p);
+    if(!resting) setTimeout(()=>setPet(p => p ? normalizePet({ ...p, action:"idle" }) : p), 1800);
   }, []);
 
   // ── Score handler: add XP to skill, update cards based on total skill levels ──
@@ -5496,9 +5537,9 @@ export default function App(){
       {achievement && <AchievementReveal achievement={achievement} onClose={()=>setAchievement(null)}/>}
 
       {screen==="splash"  && <Splash audioReady={audio.audioReady} onStart={async()=>{ await audio.initAudio(); setScreen(pet?"home":"choose"); }}/>}
-      {screen==="choose"  && <PetChooser onCancel={pet ? ()=>setScreen("home") : ()=>setScreen("splash")} onChoose={(sp,nm)=>{ setPet(normalizePet({ species:sp, name:nm, xp:0, stars:0, dead:false, action:"idle", ownedClothes:[], outfit:emptyOutfit, needs:{ hunger:85,bath:85,sleep:85,love:85,learn:85,cards:85 } })); setScreen("home"); }}/>}
+      {screen==="choose"  && <PetChooser onCancel={pet ? ()=>setScreen("home") : ()=>setScreen("splash")} onChoose={(sp,nm)=>{ setPet(normalizePet({ species:sp, name:nm, xp:0, stars:0, dead:false, action:"idle", ownedClothes:[], outfit:emptyOutfit, needs:{ hunger:85,bath:85,sleep:85,love:85,learn:85,cards:85 }, resting:false, lastRestedAt:null })); setScreen("home"); }}/>}
       {screen==="home"    && pet && (
-        <PetHome pet={pet} onCare={handleCare} onStudy={s=>setScreen(s === "juegos" ? "adventure" : s)}
+        <PetHome pet={pet} onCare={handleCare} onRestToggle={handleRestToggle} onStudy={s=>setScreen(s === "juegos" ? "adventure" : s)}
           onCollection={()=>setScreen("collection")}
           onShop={()=>setScreen("shop")}
           onChangePet={()=>setScreen("choose")}
@@ -5525,7 +5566,7 @@ export default function App(){
       {screen==="memories" && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MemoriesScreen pet={pet} skills={skills} earnedCards={earnedCards} adventure={adventure} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
       {screen==="backup" && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><ProgressBackupScreen pet={pet} skills={skills} earnedCards={earnedCards} adventure={adventure} activeSeries={activeSeries} onBack={()=>setScreen("home")} onRestore={(data)=>{ setPet(normalizePet(data.pet)); setSkills(data.skills || {}); skillsRef.current=data.skills || {}; setEarnedCards(data.earnedCards || []); earnedRef.current=data.earnedCards || []; setAdventure(data.adventure || {maxUnlocked:1,completed:{},active:null,runStars:0}); if(data.activeSeries){ setActiveSeries(data.activeSeries); seriesRef.current=data.activeSeries; } }}/></ScreenShellWithHeader>}
       {screen==="shop"       && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><WardrobeScreen pet={normalizePet(pet)} onBack={()=>setScreen("home")} onBuy={buyClothing} onEquip={equipClothing} onUnequip={unequipClothing} audio={audio}/></ScreenShellWithHeader>}
-      {screen==="letras"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><LettersMode   audio={audio} onBack={exitToAdventure} onScore={makeOnScore("letras")}/></ScreenShellWithHeader>} 
+      {screen==="letras"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")} padTop={116}><LettersMode   audio={audio} onBack={exitToAdventure} onScore={makeOnScore("letras")}/></ScreenShellWithHeader>} 
       {screen==="sumas"      && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MathMode mode="add" audio={audio} onBack={exitToAdventure} onScore={makeOnScore("sumas")}/></ScreenShellWithHeader>} 
       {screen==="restas"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MathMode mode="sub" audio={audio} onBack={exitToAdventure} onScore={makeOnScore("restas")}/></ScreenShellWithHeader>} 
       {screen==="palabras"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><WordsMode     audio={audio} onBack={exitToAdventure} onScore={makeOnScore("palabras")}/></ScreenShellWithHeader>} 
