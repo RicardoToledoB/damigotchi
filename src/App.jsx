@@ -292,6 +292,7 @@ function SoundBar({audio}){
 }
 
 function BackBtn({onClick}){
+  if (typeof window !== "undefined" && window.__damiHideLocalBack) return null;
   return(
     <button onClick={onClick} style={{position:"absolute",top:16,left:16,background:"rgba(255,255,255,.1)",border:"2px solid rgba(255,255,255,.2)",borderRadius:12,padding:"6px 14px",color:"rgba(255,255,255,.7)",cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontWeight:700,fontSize:14,transition:"all .2s",zIndex:10}}>
       ← Menú
@@ -2956,7 +2957,7 @@ function WardrobeScreen({ pet, onBack, onBuy, onEquip, onUnequip, audio }) {
 }
 
 // ── Pet chooser screen ────────────────────────────────
-function PetChooser({ onChoose }) {
+function PetChooser({ onChoose, onCancel }) {
   const [selected, setSelected] = useState(null);
   const [name, setName] = useState("");
 
@@ -2967,6 +2968,11 @@ function PetChooser({ onChoose }) {
       justifyContent:"center", padding:20, gap:16,
       fontFamily:"'Nunito',sans-serif",
     }}>
+      {onCancel && (
+        <div style={{width:"100%",maxWidth:380,display:"flex",justifyContent:"flex-start"}}>
+          <button onClick={onCancel} style={{background:"rgba(255,255,255,.1)",border:"2px solid rgba(255,255,255,.18)",borderRadius:14,padding:"10px 14px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:14,cursor:"pointer",boxShadow:"0 4px 0 rgba(0,0,0,.22)"}}>← Volver</button>
+        </div>
+      )}
       <h1 style={{ margin:0, fontWeight:900, fontSize:26, color:"white", textShadow:"2px 3px 0 rgba(0,0,0,.3)", textAlign:"center" }}>
         🥚 ¡Elige tu Damigotchi!
       </h1>
@@ -3254,19 +3260,20 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
           <div style={{ marginBottom:10 }}>
             <button onClick={()=>{audio.playClick();onStudy("juegos");}} style={{
               width:"100%", background:"linear-gradient(135deg,#FF4136,#FF8C00)",
-              border:"2px solid #FFD700", borderRadius:18, padding:"12px 10px",
-              cursor:"pointer", boxShadow:"0 4px 0 rgba(0,0,0,.25)",
+              border:"2px solid #FFD700", borderRadius:18, padding:"14px 10px",
+              cursor:"pointer", boxShadow:"0 5px 0 rgba(0,0,0,.25), 0 0 24px rgba(255,140,0,.28)",
               display:"flex", alignItems:"center", justifyContent:"center", gap:10,
-              color:"white", fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:16,
+              color:"white", fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:17,
             }}>
-              <span style={{fontSize:24}}>🎮</span>
-              <span>Juegos divertidos</span>
-              <span style={{fontSize:22}}>🎈</span>
+              <span style={{fontSize:25}}>🌎</span>
+              <span>Comenzar aventura</span>
+              <span style={{fontSize:22}}>⭐</span>
             </button>
           </div>
 
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:7 }}>
-            {MODES.map(m=>{
+          <div style={{ fontSize:10, color:"rgba(255,255,255,.3)", fontWeight:700, margin:"10px 0 6px", textAlign:"center", letterSpacing:1 }}>ZONA CREATIVA</div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:7 }}>
+            {MODES.filter(m=>["trazos","dibujo","colorear"].includes(m.id)).map(m=>{
               const prog = getSkillProgress(skills[m.skill]||0);
               return(
                 <button key={m.id} onClick={()=>{audio.playClick();onStudy(m.id);}} style={{
@@ -3650,7 +3657,7 @@ const BALLOON_COLORS = [
   { name:"rosado", color:"#FF69B4" },
 ];
 
-function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete, onPlayCaterpillar, onPlayBlocks }) {
+function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete, onPlayCaterpillar }) {
   return (
     <div style={{minHeight:"100vh",background:BG,display:"flex",flexDirection:"column",alignItems:"center",padding:"18px 16px 34px",fontFamily:"'Nunito',sans-serif"}}>
       <BackBtn onClick={onBack}/>
@@ -3701,16 +3708,6 @@ function GamesHub({ audio, onBack, onPlayBalloons, onPlayBeaver, onPlayComplete,
         </button>
       </div>
 
-      <div style={{...CARD,width:"100%",maxWidth:420,padding:18,textAlign:"center",marginTop:16,border:"2px solid rgba(255,140,0,.28)"}}>
-        <div style={{fontSize:56,animation:"blocksFloat 1.3s ease-in-out infinite"}}>🧱</div>
-        <div style={{fontSize:22,fontWeight:900,color:"#FFD700",marginTop:4}}>Construye para tu Damigotchi</div>
-        <div style={{fontSize:14,fontWeight:700,color:"rgba(255,255,255,.65)",lineHeight:1.5,margin:"8px 0 16px"}}>
-          Coloca bloques grandes para completar casitas, torres y puentes. Aprende formas, colores y pensamiento espacial.
-        </div>
-        <button onClick={()=>{audio.playClick();onPlayBlocks();}} style={{background:"linear-gradient(135deg,#FF8C00,#FFD700)",border:"none",borderRadius:18,padding:"13px 28px",color:"white",fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:18,cursor:"pointer",boxShadow:"0 5px 0 rgba(0,0,0,.25)"}}>
-          🧱 Jugar ahora
-        </button>
-      </div>
     </div>
   );
 }
@@ -4480,6 +4477,216 @@ function BeaverGameMode({ audio, onBack, onScore, onCare }) {
   );
 }
 
+
+// ══════════════════════════════════════════════════════
+//  DAMIGOTCHI V3: AVENTURA PROGRESIVA + HUD VIVO
+// ══════════════════════════════════════════════════════
+const ADVENTURE_FLOW = [
+  { screen:"letras",   skill:"letras",   icon:"🔤", title:"Letras",       world:"Bosque",   color:"#2ECC40", reward:"card" },
+  { screen:"letras",   skill:"letras",   icon:"🔤", title:"Letras",       world:"Bosque",   color:"#2ECC40", reward:"stars" },
+  { screen:"palabras", skill:"palabras", icon:"🖼️", title:"Palabras",     world:"Bosque",   color:"#00CED1", reward:"card" },
+  { screen:"globos",   skill:"globos",   icon:"🎈", title:"Globos",       world:"Bonus",    color:"#FF4136", reward:"clothes", special:true },
+  { screen:"sumas",    skill:"sumas",    icon:"➕", title:"Sumas",        world:"Energía",  color:"#FFD700", reward:"stars" },
+  { screen:"sumas",    skill:"sumas",    icon:"➕", title:"Sumas",        world:"Energía",  color:"#FFD700", reward:"card" },
+  { screen:"restas",   skill:"restas",   icon:"➖", title:"Restas",       world:"Energía",  color:"#FF69B4", reward:"stars" },
+  { screen:"castor",   skill:"castor",   icon:"🦫", title:"Castor",       world:"Bonus",    color:"#A86A32", reward:"badge", special:true },
+  { screen:"palabras", skill:"palabras", icon:"🔠", title:"Palabras 2",   world:"Agua",     color:"#0074D9", reward:"card" },
+  { screen:"palabras", skill:"palabras", icon:"📚", title:"Lectura",      world:"Agua",     color:"#00CED1", reward:"stars" },
+  { screen:"cuncuna",  skill:"cuncuna",  icon:"🐛", title:"Gusanito",     world:"Bonus",    color:"#2ECC40", reward:"clothes", special:true },
+  { screen:"sumas",    skill:"sumas",    icon:"➕", title:"Sumas",        world:"Olimpo",   color:"#FFD700", reward:"stars" },
+  { screen:"restas",   skill:"restas",   icon:"➖", title:"Restas",       world:"Olimpo",   color:"#FF69B4", reward:"card" },
+  { screen:"completa", skill:"damigotchi",icon:"🧩", title:"Damigotchi",  world:"Olimpo",   color:"#FF8C00", reward:"badge", special:true },
+  { screen:"globos",   skill:"globos",   icon:"🎈", title:"Globos Pro",   world:"Bonus",    color:"#FF4136", reward:"card", special:true },
+];
+
+function getAdventureNode(level){
+  const base = ADVENTURE_FLOW[(level-1) % ADVENTURE_FLOW.length];
+  const cycle = Math.floor((level-1) / ADVENTURE_FLOW.length) + 1;
+  const difficulty = Math.min(99, cycle + Math.floor(level / 10));
+  return {
+    ...base,
+    level,
+    cycle,
+    difficulty,
+    label: `${base.title} ${cycle > 1 && !base.special ? cycle : ""}`.trim(),
+  };
+}
+
+function isGameScreenName(screen){
+  return ["letras","sumas","restas","palabras","lineas","trazos","dibujo","colorear","completa","cuncuna","globos","castor"].includes(screen);
+}
+
+function shouldShowGlobalHeader(screen){
+  return false;
+}
+
+function GameTopHeader({ pet, onHome }){
+  if(!pet) return null;
+  return (
+    <div style={{position:"fixed",top:8,left:8,right:8,zIndex:260,pointerEvents:"none",fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{maxWidth:430,margin:"0 auto",display:"grid",gridTemplateColumns:"90px 1fr 90px",alignItems:"center",gap:8}}>
+        <button onClick={onHome} style={{pointerEvents:"auto",justifySelf:"start",background:"rgba(255,255,255,.10)",border:"2px solid rgba(255,255,255,.18)",borderRadius:14,padding:"8px 12px",color:"white",fontWeight:900,fontFamily:"'Nunito',sans-serif",fontSize:13,boxShadow:"0 4px 0 rgba(0,0,0,.22)"}}>← Inicio</button>
+        <div style={{textAlign:"center",lineHeight:1.05,textShadow:"1px 2px 0 rgba(0,0,0,.28)"}}>
+          <div style={{color:"#FFD700",fontWeight:900,fontSize:11,letterSpacing:2}}>AVENTURA</div>
+          <div style={{fontSize:18,color:"white",fontWeight:900}}>Damigotchi World</div>
+        </div>
+        <div style={{justifySelf:"end",background:"rgba(255,215,0,.14)",border:"2px solid #FFD700",borderRadius:14,padding:"8px 10px",color:"#FFD700",fontWeight:900,fontSize:13,boxShadow:"0 4px 0 rgba(0,0,0,.22)"}}>⭐ {pet.stars||0}</div>
+      </div>
+    </div>
+  );
+}
+
+function MiniPetHud({ pet, onHome }){
+  if(!pet) return null;
+  const urgent = getUrgentNeed(pet.needs || {});
+  const val = pet.needs?.[urgent] ?? 100;
+  const msg = getSoftNeedMessage(urgent, pet.name || "Damigotchi");
+  const warning = val < 42;
+  const stage = getPetStage(pet.xp || 0);
+  const expression = getPetExpression(pet.needs || {}, pet.dead);
+  const alertText = warning ? `${msg.icon} ${msg.text}` : "me acompaña mientras juego ✨";
+  return (
+    <div style={{position:"fixed",top:58,left:8,right:8,zIndex:255,pointerEvents:"none",fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{maxWidth:430,margin:"0 auto"}}>
+        <div style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:8,background:"linear-gradient(135deg,rgba(255,255,255,.11),rgba(255,255,255,.05))",border:`2px solid ${warning?"rgba(255,65,54,.55)":"rgba(255,255,255,.16)"}`,boxShadow:warning?"0 8px 24px rgba(255,65,54,.20), 0 8px 24px rgba(0,0,0,.25)":"0 8px 24px rgba(0,0,0,.28)",backdropFilter:"blur(12px)",borderRadius:18,padding:"8px 10px"}}>
+          <div style={{width:46,height:46,borderRadius:14,background:"rgba(255,255,255,.09)",display:"grid",placeItems:"center",overflow:"hidden",flexShrink:0,border:"1px solid rgba(255,255,255,.14)"}}>
+            <PetSprite species={pet.species} expression={expression} xp={pet.xp || 0} size={52} outfit={pet.outfit} action={pet.action}/>
+          </div>
+          <div style={{minWidth:0,flex:1}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:6,whiteSpace:"nowrap",overflow:"hidden"}}>
+              <span style={{fontWeight:900,color:"#FFD700",fontSize:14,overflow:"hidden",textOverflow:"ellipsis",maxWidth:118}}>{pet.name}</span>
+              <span style={{fontWeight:900,color:"rgba(255,255,255,.82)",fontSize:11}}>Nv.{stage.level} · {stage.name}</span>
+            </div>
+            <div style={{height:7,background:"rgba(255,255,255,.13)",borderRadius:999,overflow:"hidden",marginTop:4}}>
+              <div style={{height:"100%",width:`${Math.max(7,Math.min(100,val))}%`,background:warning?"linear-gradient(90deg,#FF4136,#FFD700)":"linear-gradient(90deg,#FFD700,#2ECC40,#00CED1)",borderRadius:999,transition:"width .35s"}}/>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginTop:4}}>
+              <div style={{fontSize:12,opacity:.92,whiteSpace:"nowrap"}}>🍔 🛁 😴 ❤️</div>
+              <div style={{color:warning?"#FFE1E1":"rgba(255,255,255,.62)",fontWeight:900,fontSize:10,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:190}}>{alertText}</div>
+            </div>
+          </div>
+          <button onClick={onHome} style={{border:"none",borderRadius:12,padding:"8px 9px",background:"linear-gradient(135deg,#FFD700,#FF8C00)",color:"#201038",fontWeight:900,cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontSize:13,boxShadow:"0 4px 0 rgba(0,0,0,.22)"}}>🏠</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScreenShellWithHeader({ pet, onHome, children, padTop=132 }){
+  return (
+    <div style={{position:"relative",minHeight:"100vh"}}>
+      {pet && <>
+        <GameTopHeader pet={pet} onHome={onHome}/>
+        <MiniPetHud pet={pet} onHome={onHome}/>
+      </>}
+      <div style={{paddingTop: pet ? padTop : 24}}>{children}</div>
+    </div>
+  );
+}
+
+function AdventureScreen({ adventure, onStart, onBack, pet }){
+  const maxUnlocked = adventure?.maxUnlocked || 1;
+  const completed = adventure?.completed || {};
+  const currentLevel = adventure?.active || maxUnlocked;
+  const currentNode = getAdventureNode(currentLevel);
+  const showUntil = Math.max(24, maxUnlocked + 18);
+  const nodes = Array.from({length:showUntil},(_,i)=>getAdventureNode(i+1));
+  const currentNodeRef = useRef(null);
+
+  useEffect(() => {
+    if (currentNodeRef.current) {
+      currentNodeRef.current.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+  }, [currentLevel]);
+
+  return (
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"14px 14px 32px",overflowY:"auto"}}>
+      <div style={{maxWidth:430,margin:"0 auto",paddingTop: 24}}>
+        <div style={{textAlign:"center",marginBottom:12}}>
+          <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>🌎 AVENTURA DAMIGOTCHI</div>
+          <div style={{fontSize:28,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.25)"}}>Camino del Aprendizaje</div>
+          <div style={{fontSize:13,fontWeight:700,color:"rgba(255,255,255,.58)",marginTop:4}}>Completa ⭐⭐⭐ para abrir el siguiente nivel</div>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:10,padding:"8px 14px",borderRadius:999,background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)",boxShadow:"0 8px 18px rgba(0,0,0,.18)"}}>
+            <span style={{fontSize:12,fontWeight:900,color:"#FFD700"}}>📍 Nivel actual</span>
+            <span style={{fontSize:12,fontWeight:900,color:"white"}}>Lvl {currentLevel}</span>
+            <span style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.78)"}}>{currentNode.label}</span>
+          </div>
+        </div>
+        <div style={{position:"relative",borderRadius:28,padding:"24px 16px",background:"linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.035))",border:"2px solid rgba(255,255,255,.12)",boxShadow:"0 22px 70px rgba(0,0,0,.38)",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 20% 8%,rgba(255,215,0,.18),transparent 18%),radial-gradient(circle at 85% 30%,rgba(46,204,64,.16),transparent 20%),radial-gradient(circle at 35% 70%,rgba(0,206,209,.14),transparent 25%)",pointerEvents:"none"}}/>
+          <svg style={{position:"absolute",left:0,top:0,width:"100%",height:"100%",pointerEvents:"none",opacity:.42}} viewBox={`0 0 400 ${nodes.length*112}`} preserveAspectRatio="none">
+            <path d={`M200 45 ${nodes.map((_,i)=>`C ${i%2?60:340} ${95+i*112}, ${i%2?340:60} ${130+i*112}, 200 ${180+i*112}`).join(' ')}`} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="10" strokeLinecap="round" strokeDasharray="20 18"/>
+          </svg>
+          <div style={{position:"relative",display:"flex",flexDirection:"column",gap:24}}>
+            {nodes.map((node,idx)=>{
+              const done = !!completed[node.level];
+              const unlocked = node.level <= maxUnlocked;
+              const side = idx%2===0 ? "flex-start" : "flex-end";
+              const active = unlocked && !done && node.level === maxUnlocked;
+              const isCurrent = node.level === currentLevel;
+              return (
+                <div key={node.level} ref={isCurrent ? currentNodeRef : null} style={{display:"flex",justifyContent:side,paddingLeft:idx%2===0?8:0,paddingRight:idx%2?8:0,scrollMarginTop:150}}>
+                  <button onClick={()=>unlocked && !done && onStart(node.level)} disabled={!unlocked || done} style={{position:"relative",width:124,minHeight:144,border:"none",background:"transparent",cursor:unlocked&&!done?"pointer":"default",fontFamily:"'Nunito',sans-serif",opacity:unlocked?1:.55}}>
+                    {(active || isCurrent) && <div style={{position:"absolute",inset:0,borderRadius:32,background:`${node.color}33`,filter:"blur(16px)",animation:"pulse 1.5s infinite"}}/>}
+                    {isCurrent && pet && <div style={{position:"relative",zIndex:2,width:44,height:44,margin:"0 auto -6px",borderRadius:999,display:"grid",placeItems:"center",background:"linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.75))",border:"3px solid #FFD700",boxShadow:"0 8px 18px rgba(0,0,0,.28), 0 0 16px rgba(255,215,0,.35)",animation:"floaty 2.2s ease-in-out infinite"}}>
+                      <PetSprite species={pet.species} expression={getPetExpression(pet.needs || {}, pet.dead)} xp={pet.xp || 0} size={38} outfit={pet.outfit} action={pet.action}/>
+                    </div>}
+                    {isCurrent && <div style={{position:"relative",zIndex:2,display:"inline-block",marginBottom:4,padding:"3px 8px",borderRadius:999,background:"linear-gradient(135deg,#FFD700,#FF8C00)",color:"#201038",fontWeight:900,fontSize:10,boxShadow:"0 4px 0 rgba(0,0,0,.18)"}}>📍 Actual</div>}
+                    <div style={{position:"relative",width:82,height:82,margin:"0 auto",borderRadius:node.special?28:26,display:"grid",placeItems:"center",fontSize:node.special?34:31,background:done?"linear-gradient(135deg,#2ECC40,#00CED1)":unlocked?`linear-gradient(135deg,${node.color},#FFFFFF33)`:"linear-gradient(135deg,#444,#222)",border:`4px solid ${isCurrent?"#FFD700":done?"#B9FFE8":unlocked?"rgba(255,255,255,.88)":"rgba(255,255,255,.20)"}`,boxShadow:isCurrent?`0 0 0 4px rgba(255,215,0,.16), 0 10px 28px rgba(255,215,0,.35), inset 0 0 18px rgba(255,255,255,.16)`:unlocked?`0 10px 26px ${node.color}55, inset 0 0 18px rgba(255,255,255,.16)`:"0 8px 18px rgba(0,0,0,.25)"}}>
+                      {!unlocked ? "🔒" : done ? "✅" : node.icon}
+                      {node.special && unlocked && !done && <span style={{position:"absolute",right:-8,top:-8,background:"#FF4136",border:"2px solid white",borderRadius:999,padding:"2px 6px",fontSize:10,fontWeight:900,color:"white"}}>BONUS</span>}
+                    </div>
+                    <div style={{marginTop:6,background:isCurrent?"linear-gradient(135deg,#FFF7C0,#FFFFFF)":"rgba(255,255,255,.90)",borderRadius:14,padding:"5px 7px",color:"#201038",fontWeight:900,fontSize:12,boxShadow:"0 4px 0 rgba(0,0,0,.18)"}}>Lvl {node.level}</div>
+                    <div style={{marginTop:3,color:"white",fontWeight:900,fontSize:11,textShadow:"1px 2px 0 rgba(0,0,0,.25)",whiteSpace:"nowrap"}}>{node.label}</div>
+                    <div style={{fontSize:14,letterSpacing:1,marginTop:1}}>{done?"⭐⭐⭐":isCurrent?"☆☆☆":active?"☆☆☆":"•••"}</div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function LevelCompleteOverlay({ complete, onContinue }){
+  if(!complete) return null;
+  const rewardLabels = {
+    card: "Carta sorpresa",
+    stars: "Estrellas extra",
+    clothes: "Ropita nueva",
+    badge: "Insignia",
+  };
+  const rewardIcons = {
+    card: "🃏",
+    stars: "⭐",
+    clothes: "👕",
+    badge: "🏅",
+  };
+  const reward = complete.reward || complete.node?.reward || "stars";
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:500,background:"rgba(10,8,30,.68)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:18,fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{width:"min(360px,94vw)",borderRadius:28,padding:"26px 20px",textAlign:"center",background:"linear-gradient(160deg,rgba(72,44,150,.98),rgba(36,23,84,.98))",border:"3px solid rgba(255,215,0,.75)",boxShadow:"0 22px 70px rgba(0,0,0,.55),0 0 34px rgba(255,215,0,.25)",color:"white",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,rgba(255,215,0,.22),transparent 36%),radial-gradient(circle at 15% 78%,rgba(46,204,64,.16),transparent 28%)",pointerEvents:"none"}}/>
+        <div style={{position:"relative"}}>
+          <div style={{fontSize:44,marginBottom:4}}>🎉</div>
+          <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>¡Excelente!</div>
+          <div style={{marginTop:6,fontSize:15,fontWeight:900,color:"rgba(255,255,255,.82)"}}>Nivel {complete.level || complete.node?.level || ""} completado</div>
+          <div style={{fontSize:34,letterSpacing:4,margin:"14px 0 8px",filter:"drop-shadow(0 5px 9px rgba(0,0,0,.35))"}}>⭐⭐⭐</div>
+          <div style={{margin:"14px auto",padding:"14px 12px",borderRadius:20,background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)",boxShadow:"inset 0 0 18px rgba(255,255,255,.06)"}}>
+            <div style={{fontSize:34}}>{rewardIcons[reward] || "🎁"}</div>
+            <div style={{fontWeight:900,fontSize:16,color:"#FFD700"}}>Recompensa</div>
+            <div style={{fontWeight:900,fontSize:14,color:"rgba(255,255,255,.82)"}}>{rewardLabels[reward] || "Premio especial"}</div>
+          </div>
+          <button onClick={onContinue} style={{width:"100%",border:"none",borderRadius:18,padding:"13px 14px",background:"linear-gradient(135deg,#2ECC40,#88FF6A)",color:"#153016",fontWeight:900,fontSize:18,fontFamily:"'Nunito',sans-serif",boxShadow:"0 6px 0 rgba(0,0,0,.25)",cursor:"pointer"}}>Continuar aventura</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App(){
   const [screen, setScreen] = useState("splash");
   const [earnedCards, setEarnedCards] = useState([]);
@@ -4489,6 +4696,8 @@ export default function App(){
   const [purchaseDialog, setPurchaseDialog] = useState(null);
   const [skills, setSkills] = useState({ letras:0, sumas:0, restas:0, palabras:0, lineas:0, trazos:0, dibujo:0, colorear:0, globos:0, castor:0, damigotchi:0, cuncuna:0, bloques:0 });
   const audio = useAudio();
+  const [adventure, setAdventure] = useState(()=>{ try { return JSON.parse(localStorage.getItem("damigotchi_adventure_v3")||"null") || { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } catch { return { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } });
+  const [levelComplete, setLevelComplete] = useState(null);
 
   // Desbloqueo de audio para celulares/tablets.
   // Safari/Chrome móvil exigen una interacción real del usuario antes de reproducir música.
@@ -4505,8 +4714,18 @@ export default function App(){
   }, [audio]);
 
   const [pet, setPet] = useState(()=>{ try { const saved = localStorage.getItem("damigotchi_pet_v2"); return saved ? normalizePet(JSON.parse(saved)) : null; } catch { return null; } });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.__damiHideLocalBack = shouldShowGlobalHeader(screen);
+    }
+    return () => {
+      if (typeof window !== "undefined") window.__damiHideLocalBack = false;
+    };
+  }, [screen]);
+
 
   useEffect(()=>{ try { if(pet) localStorage.setItem("damigotchi_pet_v2", JSON.stringify(normalizePet(pet))); } catch {} }, [pet]);
+  useEffect(()=>{ try { localStorage.setItem("damigotchi_adventure_v3", JSON.stringify(adventure)); } catch {} }, [adventure]);
 
   // Refs to avoid stale closures
   const earnedRef  = useRef([]);
@@ -4598,6 +4817,56 @@ export default function App(){
   }, []);
 
 
+
+  const startAdventureLevel = useCallback((level) => {
+    const node = getAdventureNode(level);
+    if (level > (adventure.maxUnlocked || 1)) return;
+    if (adventure.completed?.[level]) return;
+    audio.playClick();
+    setAdventure(a => ({ ...a, active: level, runStars:0 }));
+    setScreen(node.screen);
+  }, [adventure, audio]);
+
+  const finishAdventureLevel = useCallback((level, node) => {
+    const reward = node.reward || "stars";
+    setAdventure(a => ({
+      ...a,
+      active:null,
+      runStars:0,
+      maxUnlocked: Math.max(a.maxUnlocked || 1, level + 1),
+      completed: { ...(a.completed || {}), [level]: { stars:3, reward, screen:node.screen, at:Date.now() } }
+    }));
+    // Recompensa suave al Damigotchi
+    setPet(p => p ? normalizePet({
+      ...p,
+      stars: (p.stars || 0) + (reward === "stars" ? 12 : 6),
+      xp: (p.xp || 0) + 8,
+      action:"love",
+      needs:{ ...p.needs, love:Math.min(100,p.needs.love+12), cards:Math.min(100,p.needs.cards+10), learn:Math.min(100,p.needs.learn+10) }
+    }) : p);
+    setLevelComplete({ level, reward, node });
+    audio.playCorrect();
+    setTimeout(()=>{ setScreen("adventure"); }, 1350);
+    setTimeout(()=>{ setLevelComplete(null); }, 4200);
+  }, [audio]);
+
+  const registerAdventureStar = useCallback((skillId) => {
+    setAdventure(a => {
+      if (!a.active) return a;
+      const node = getAdventureNode(a.active);
+      const nextStars = Math.min(3, (a.runStars || 0) + 1);
+      if (nextStars >= 3 && !a.completed?.[a.active]) {
+        setTimeout(()=>finishAdventureLevel(a.active, node), 80);
+      }
+      return { ...a, runStars: nextStars };
+    });
+  }, [finishAdventureLevel]);
+
+  const exitToAdventure = useCallback(() => {
+    setAdventure(a => ({ ...a, active:null, runStars:0 }));
+    setScreen("adventure");
+  }, []);
+
   const buyClothing = useCallback((itemId) => {
     const item = getItemById(itemId);
     if (!item) return;
@@ -4648,7 +4917,7 @@ export default function App(){
   }, []);
 
   // Create per-skill callbacks for each mode
-  const makeOnScore = (skillId) => (pts=1) => onScore(skillId, pts);
+  const makeOnScore = (skillId) => (pts=1) => { onScore(skillId, pts); registerAdventureStar(skillId); };
 
   // Card progress for PetHome
   const totalLvls   = totalSkillLevels(skills);
@@ -4679,9 +4948,9 @@ export default function App(){
       {achievement && <AchievementReveal achievement={achievement} onClose={()=>setAchievement(null)}/>}
 
       {screen==="splash"  && <Splash audioReady={audio.audioReady} onStart={async()=>{ await audio.initAudio(); setScreen(pet?"home":"choose"); }}/>}
-      {screen==="choose"  && <PetChooser onChoose={(sp,nm)=>{ setPet(normalizePet({ species:sp, name:nm, xp:0, stars:0, dead:false, action:"idle", ownedClothes:[], outfit:emptyOutfit, needs:{ hunger:85,bath:85,sleep:85,love:85,learn:85,cards:85 } })); setScreen("home"); }}/>}
+      {screen==="choose"  && <PetChooser onCancel={pet ? ()=>setScreen("home") : ()=>setScreen("splash")} onChoose={(sp,nm)=>{ setPet(normalizePet({ species:sp, name:nm, xp:0, stars:0, dead:false, action:"idle", ownedClothes:[], outfit:emptyOutfit, needs:{ hunger:85,bath:85,sleep:85,love:85,learn:85,cards:85 } })); setScreen("home"); }}/>}
       {screen==="home"    && pet && (
-        <PetHome pet={pet} onCare={handleCare} onStudy={s=>setScreen(s)}
+        <PetHome pet={pet} onCare={handleCare} onStudy={s=>setScreen(s === "juegos" ? "adventure" : s)}
           onCollection={()=>setScreen("collection")}
           onShop={()=>setScreen("shop")}
           onChangePet={()=>setScreen("choose")}
@@ -4693,26 +4962,31 @@ export default function App(){
           skills={skills} totalLvls={totalLvls} nextCardAt={nextCardAt}
           progress={progress} audio={audio}/>
       )}
-      {screen==="collection" && <CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/>}
-      {screen==="juegos"     && <GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")} onPlayCaterpillar={()=>setScreen("cuncuna")} onPlayBlocks={()=>setScreen("bloques")}/>} 
-      {screen==="skills"     && <SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/>}
-      {screen==="badges"     && <BadgesScreen skills={skills} onBack={()=>setScreen("home")}/>}
-      {screen==="diplomas"   && <DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/>}
-      {screen==="shop"       && pet && <WardrobeScreen pet={normalizePet(pet)} onBack={()=>setScreen("home")} onBuy={buyClothing} onEquip={equipClothing} onUnequip={unequipClothing} audio={audio}/>}
-      {screen==="letras"     && <LettersMode   audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("letras")}/>}
-      {screen==="sumas"      && <MathMode mode="add" audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("sumas")}/>}
-      {screen==="restas"     && <MathMode mode="sub" audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("restas")}/>}
-      {screen==="palabras"   && <WordsMode     audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("palabras")}/>}
-      {screen==="lineas"     && <MatchLinesMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("lineas")}/>}
-      {screen==="trazos"     && <TraceLetterMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("trazos")}/>}
-      {screen==="dibujo"     && <DrawMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("dibujo")} onCare={handleCare}/>}
-      {screen==="colorear"   && <ColorAnimalsMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("colorear")} onCare={handleCare}/>}
-      {screen==="galeria"    && <GalleryMode audio={audio} onBack={()=>setScreen("home")}/>}
-      {screen==="completa"   && <CompleteDamigotchiGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("damigotchi")} onCare={handleCare}/>} 
-      {screen==="cuncuna"    && <CaterpillarGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("cuncuna")} onCare={handleCare}/>} 
-      {screen==="bloques"    && <BlocksDamigotchiMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("bloques")} onCare={handleCare}/>} 
-      {screen==="globos"     && <BalloonGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("globos")} onCare={handleCare}/> }
-      {screen==="castor"     && <BeaverGameMode audio={audio} onBack={()=>setScreen("juegos")} onScore={makeOnScore("castor")} onCare={handleCare}/>}
+      {screen==="collection" && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><CollectionScreen cards={earnedCards} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="adventure"  && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><AdventureScreen adventure={adventure} pet={pet} onStart={startAdventureLevel} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="juegos"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><GamesHub audio={audio} onBack={()=>setScreen("home")} onPlayBalloons={()=>setScreen("globos")} onPlayBeaver={()=>setScreen("castor")} onPlayComplete={()=>setScreen("completa")} onPlayCaterpillar={()=>setScreen("cuncuna")}/></ScreenShellWithHeader>} 
+      {screen==="skills"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><SkillsScreen skills={skills} earnedCards={earnedCards} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="badges"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><BadgesScreen skills={skills} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="diplomas"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><DiplomasScreen skills={skills} pet={pet} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="shop"       && pet && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><WardrobeScreen pet={normalizePet(pet)} onBack={()=>setScreen("home")} onBuy={buyClothing} onEquip={equipClothing} onUnequip={unequipClothing} audio={audio}/></ScreenShellWithHeader>}
+      {screen==="letras"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><LettersMode   audio={audio} onBack={exitToAdventure} onScore={makeOnScore("letras")}/></ScreenShellWithHeader>} 
+      {screen==="sumas"      && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MathMode mode="add" audio={audio} onBack={exitToAdventure} onScore={makeOnScore("sumas")}/></ScreenShellWithHeader>} 
+      {screen==="restas"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MathMode mode="sub" audio={audio} onBack={exitToAdventure} onScore={makeOnScore("restas")}/></ScreenShellWithHeader>} 
+      {screen==="palabras"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><WordsMode     audio={audio} onBack={exitToAdventure} onScore={makeOnScore("palabras")}/></ScreenShellWithHeader>} 
+      {screen==="lineas"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><MatchLinesMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("lineas")}/></ScreenShellWithHeader>} 
+      {screen==="trazos"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><TraceLetterMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("trazos")}/></ScreenShellWithHeader>} 
+      {screen==="dibujo"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><DrawMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("dibujo")} onCare={handleCare}/></ScreenShellWithHeader>} 
+      {screen==="colorear"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><ColorAnimalsMode audio={audio} onBack={()=>setScreen("home")} onScore={makeOnScore("colorear")} onCare={handleCare}/></ScreenShellWithHeader>} 
+      {screen==="galeria"    && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><GalleryMode audio={audio} onBack={()=>setScreen("home")}/></ScreenShellWithHeader>}
+      {screen==="completa"   && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><CompleteDamigotchiGameMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("damigotchi")} onCare={handleCare}/></ScreenShellWithHeader>}  
+      {screen==="cuncuna"    && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><CaterpillarGameMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("cuncuna")} onCare={handleCare}/></ScreenShellWithHeader>}  
+      {screen==="globos"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><BalloonGameMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("globos")} onCare={handleCare}/></ScreenShellWithHeader> } 
+      {screen==="castor"     && <ScreenShellWithHeader pet={pet} onHome={()=>setScreen("home")}><BeaverGameMode audio={audio} onBack={exitToAdventure} onScore={makeOnScore("castor")} onCare={handleCare}/></ScreenShellWithHeader>} 
+      {shouldShowGlobalHeader(screen) && pet && <>
+        <GameTopHeader pet={pet} onHome={()=>setScreen("home")}/>
+        <MiniPetHud pet={pet} onHome={()=>setScreen("home")}/>
+      </>}
+      <LevelCompleteOverlay complete={levelComplete} onContinue={()=>{setLevelComplete(null);setScreen("adventure");}}/>
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
       <FooterAutor/>
     </>
