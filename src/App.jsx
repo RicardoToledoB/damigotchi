@@ -1190,7 +1190,7 @@ function SkillsScreen({ skills, onBack, earnedCards }) {
         const isMax = prog.lvl >= 100;
         return (
           <div key={id} style={{
-            width:"100%", maxWidth:400, marginBottom:10,
+            width:"100%", maxWidth:400, marginBottom:14,
             background:`linear-gradient(135deg,${info.color}22,${info.color}11)`,
             border:`2px solid ${info.color}55`, borderRadius:20, padding:"14px 16px",
           }}>
@@ -3139,6 +3139,29 @@ function getCareAverage(pet){
   if(!pet?.needs) return 100;
   return Math.round(NEEDS.reduce((s,k)=>s+(pet.needs[k] || 0),0) / NEEDS.length);
 }
+function getNeedPhrase(need, petName="Damigotchi"){
+  const phrases = {
+    hunger: [`${petName} tiene hambre`, "Una pizza le daría energía", "Quiere comer algo rico"],
+    bath: [`${petName} quiere bañarse`, "Un baño lo dejaría brillante", "Necesita quedar limpito"],
+    sleep: [`${petName} tiene sueñito`, "Quiere descansar un momento", "Después de dormir jugará mejor"],
+    love: [`${petName} quiere cariño`, "Un abrazo lo haría feliz", "Quiere jugar contigo"],
+    learn: [`${petName} quiere aprender`, "Está listo para otro desafío", "Quiere seguir la aventura"],
+    cards: [`${petName} sueña con cartas`, "Quiere descubrir una carta mágica", "Hay una sorpresa esperándolo"],
+  };
+  const list = phrases[need] || [`${petName} quiere atención`];
+  const idx = Math.abs((petName || "D").split("").reduce((a,c)=>a+c.charCodeAt(0),0) + new Date().getMinutes()) % list.length;
+  return list[idx];
+}
+
+function getAdventureHint(pet, adventure){
+  const lvl = adventure?.maxUnlocked || 1;
+  const completed = countCompletedAdventureLevels(adventure);
+  if ((pet?.needs?.hunger || 100) < 35) return "Primero dale comida a tu Damigotchi para seguir con energía.";
+  if ((pet?.needs?.sleep || 100) < 30) return "Tu Damigotchi necesita descansar antes de otra gran misión.";
+  if (completed > 0 && completed % 5 === 0) return "¡Hay una racha bonita! Sigue para abrir más cofres y recuerdos.";
+  return `Siguiente misión: completa el Nivel ${lvl} y gana 3 estrellas.`;
+}
+
 
 function getTotalBadgeCount(skills){
   return SKILL_IDS.reduce((total,id)=>total + (getBadgeLevelForSkill(skills?.[id] || 0) > 0 ? 1 : 0), 0);
@@ -3320,19 +3343,20 @@ function InfoCard({ icon, title, children, accent="#FFD700" }){
 
 function ParentsScreen({ onBack }){
   return (
-    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"18px 14px 36px"}}>
+    <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"18px 14px 44px"}}>
       <BackBtn onClick={onBack}/>
-      <div style={{maxWidth:430,margin:"0 auto",paddingTop:52,display:"flex",flexDirection:"column",gap:12}}>
-        <div style={{textAlign:"center",marginBottom:4}}>
+      <div style={{maxWidth:430,margin:"0 auto",paddingTop:52,display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{textAlign:"center",marginBottom:6}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>ZONA PARA PADRES</div>
           <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Damigotchi en familia</div>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.62)",marginTop:4}}>Un juego educativo, emocional y acompañado.</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.68)",marginTop:5,lineHeight:1.35}}>Una experiencia educativa breve, positiva y acompañada.</div>
         </div>
-        <InfoCard icon="🎯" title="Objetivo educativo" accent="#00CED1">Damigotchi busca reforzar letras, palabras, sumas, restas, creatividad y constancia mediante una mascota virtual que crece con el aprendizaje.</InfoCard>
-        <InfoCard icon="👶" title="Edad recomendada" accent="#FF69B4">Ideal para niños y niñas de 4 a 10 años. Para menores de 4 años se recomienda uso acompañado, priorizando pintar, globos, sonidos y cuidado de la mascota.</InfoCard>
-        <InfoCard icon="⏱️" title="Tiempo sugerido" accent="#FFD700">Se recomienda jugar en sesiones cortas de 15 a 25 minutos, con pausas. Damigotchi promueve volver a cuidar y aprender, no jugar sin descanso.</InfoCard>
-        <InfoCard icon="❤️" title="Uso sano" accent="#2ECC40">Las recompensas son simbólicas: estrellas, cartas, ropa, diplomas y evoluciones. No hay compras reales ni presión por ranking.</InfoCard>
-        <InfoCard icon="🔐" title="Privacidad actual" accent="#9B59B6">Esta beta guarda el progreso localmente en el navegador. Antes del backend, se puede exportar una copia del avance desde “Guardar”.</InfoCard>
+        <InfoCard icon="🎯" title="Qué aprende el niño" accent="#00CED1">Refuerza letras, palabras, sumas, restas, creatividad, memoria y constancia mediante desafíos cortos. La mascota crece con el aprendizaje y motiva a volver con calma.</InfoCard>
+        <InfoCard icon="👶" title="Edad recomendada" accent="#FF69B4">Pensado principalmente para niños y niñas de 4 a 10 años. Para menores de 4 años se recomienda uso acompañado, priorizando pintar, globos, sonidos y cuidado de la mascota.</InfoCard>
+        <InfoCard icon="⏱️" title="Uso recomendado" accent="#FFD700">Sugerimos sesiones de 15 a 25 minutos, con pausas. Damigotchi está diseñado para aprender, cuidar y descansar; no para jugar sin parar.</InfoCard>
+        <InfoCard icon="❤️" title="Uso sano" accent="#2ECC40">Las recompensas son simbólicas: estrellas, cartas, ropa, diplomas, recuerdos y evoluciones. No hay compras reales, ranking competitivo ni presión social.</InfoCard>
+        <InfoCard icon="🔐" title="Privacidad actual" accent="#9B59B6">Esta beta guarda el progreso localmente en el navegador. Antes de cambiar de equipo, se puede exportar una copia desde “Guardar aventura”.</InfoCard>
+        <InfoCard icon="🚀" title="Próximamente" accent="#FF8C00">La siguiente etapa será una cuenta familiar con perfiles de niños, respaldo seguro y seguimiento educativo desde backend.</InfoCard>
       </div>
     </div>
   );
@@ -3394,7 +3418,11 @@ function ProgressBackupScreen({ pet, skills, earnedCards, adventure, activeSerie
         <div style={{textAlign:"center",marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>RESPALDO LOCAL</div>
           <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Guardar aventura</div>
-          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.62)",marginTop:4}}>Exporta el avance antes de cambiar de equipo o navegador.</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.62)",marginTop:4,lineHeight:1.35}}>Este respaldo guarda la aventura local de tu Damigotchi. Más adelante podrás usar una cuenta familiar.</div>
+        </div>
+        <div style={{...CARD,padding:12,marginBottom:12,border:"2px solid rgba(0,206,209,.18)"}}>
+          <div style={{fontSize:13,fontWeight:900,color:"#91FFFF",marginBottom:5}}>📦 Qué guarda este respaldo</div>
+          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.70)",lineHeight:1.45}}>Mascota, evolución, estrellas, mapa, materias, cartas, diplomas, recuerdos y configuración de colección.</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:10,marginBottom:12}}>
           <button onClick={download} style={{background:"linear-gradient(135deg,#FFD700,#FF8C00)",border:"none",borderRadius:16,padding:"13px 10px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#241033",fontSize:15,boxShadow:"0 5px 0 rgba(0,0,0,.25)",cursor:"pointer"}}>💾 Descargar</button>
@@ -3411,6 +3439,7 @@ function ProgressBackupScreen({ pet, skills, earnedCards, adventure, activeSerie
         <div style={{fontSize:12,fontWeight:900,color:"rgba(255,255,255,.55)",margin:"10px 0 6px"}}>Restaurar respaldo</div>
         <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Pega aquí un respaldo JSON de Damigotchi..." style={{width:"100%",minHeight:110,borderRadius:16,border:"2px solid rgba(255,255,255,.14)",background:"rgba(255,255,255,.08)",color:"white",padding:12,fontFamily:"monospace",fontSize:11,outline:"none"}} />
         <button onClick={restore} disabled={!text.trim()} style={{width:"100%",marginTop:8,background:text.trim()?"linear-gradient(135deg,#2ECC40,#88FF6A)":"rgba(255,255,255,.10)",border:"none",borderRadius:16,padding:"12px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:text.trim()?"#153016":"rgba(255,255,255,.35)",fontSize:15,cursor:text.trim()?"pointer":"default"}}>♻️ Restaurar progreso</button>
+        <button onClick={()=>{ if(confirm("¿Seguro que quieres borrar el progreso local de este navegador?")){ localStorage.clear(); setMsg("🧹 Progreso local limpiado. Recarga la página para comenzar de nuevo."); } }} style={{width:"100%",marginTop:10,background:"rgba(255,65,54,.12)",border:"2px solid rgba(255,65,54,.35)",borderRadius:16,padding:"11px",fontFamily:"'Nunito',sans-serif",fontWeight:900,color:"#FFD7D7",fontSize:13,cursor:"pointer"}}>🧹 Limpiar progreso local</button>
       </div>
     </div>
   );
@@ -3421,8 +3450,10 @@ function MemoriesScreen({ pet, skills, earnedCards, adventure, onBack }){
   const badgeCount = getTotalBadgeCount(skills || {});
   const evoName = getEvolutionNames(pet?.species)[(pet?.evolutionStage || 1)-1] || "Bebé Damigotchi";
   const memories = [
+    {icon:"🌟",title:"Recuerdo destacado",text:`${pet?.name || "Tu Damigotchi"} alcanzó la forma ${evoName}.`},
     {icon:"🥚",title:"Primer encuentro",text:`${pet?.name || "Tu Damigotchi"} comenzó su aventura contigo.`},
     {icon:"🌎",title:"Camino recorrido",text:`Has completado ${completed} niveles del mapa de aprendizaje.`},
+    {icon:"🎁",title:"Cofres y sorpresas",text:"Cada recompensa abre una nueva razón para seguir aprendiendo."},
     {icon:"🃏",title:"Colección",text:`Has reunido ${earnedCards?.length || 0} cartas mágicas.`},
     {icon:"🏅",title:"Insignias",text:`Has desbloqueado ${badgeCount} materias con insignia.`},
     {icon:"✨",title:"Evolución actual",text:`La forma actual es ${evoName}.`},
@@ -3482,11 +3513,12 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
 
   // mood description
   const moodText = pet.dead ? "💀 Necesita revivir..."
+    : urgentVal < 15       ? `⚠️ ${getNeedPhrase(urgentNeed, pet.name)} urgente`
+    : urgentVal < 35       ? `${NEED_META[urgentNeed].icon} ${getNeedPhrase(urgentNeed, pet.name)}`
     : expression==="happy" ? `¡${pet.name} está muy feliz! ✨`
-    : expression==="ok"    ? `${pet.name} está bien 😊`
-    : urgentVal < 15       ? `⚠️ ¡${pet.name} necesita ${NEED_META[urgentNeed].label} urgente!`
-    : urgentVal < 28       ? `${NEED_META[urgentNeed].icon} ${pet.name} necesita ${NEED_META[urgentNeed].label}`
-    : `${pet.name} está un poco triste 😢`;
+    : expression==="ok"    ? `${pet.name} está tranquilo y contento 😊`
+    : `${pet.name} quiere un poquito de atención 💜`;
+  const homeHint = getAdventureHint(pet, { maxUnlocked: Math.max(1, totalSkillPoints(skills)) });
 
   return (
     <div style={{
@@ -3610,7 +3642,7 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
 
       {/* Magical companion card */}
       <div style={{
-        width:"100%", maxWidth:400, marginBottom:10,
+        width:"100%", maxWidth:400, marginBottom:14,
         background:evoTheme.frame,
         border:`2px solid ${evoTheme.border}`, borderRadius:28,
         padding:"14px 14px 12px", position:"relative", overflow:"hidden",
@@ -3656,6 +3688,10 @@ function PetHome({ pet, onCare, onStudy, onCollection, onShop, onSkills, onBadge
             </div>
           )}
         </div>
+      </div>
+
+      <div style={{width:"100%",maxWidth:400,margin:"0 0 12px",padding:"10px 14px",borderRadius:18,background:"rgba(255,215,0,.09)",border:"1px solid rgba(255,215,0,.22)",color:"rgba(255,255,255,.78)",fontSize:12,fontWeight:900,textAlign:"center",lineHeight:1.35}}>
+        👉 {homeHint}
       </div>
 
       {/* Vida suave: sin barras ni castigos, solo mensajes y cuidado emocional */}
@@ -5071,7 +5107,7 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
 
   return (
     <div style={{minHeight:"100vh",background:BG,fontFamily:"'Nunito',sans-serif",color:"white",padding:"14px 14px 32px",overflowY:"auto"}}>
-      <div style={{maxWidth:430,margin:"0 auto",paddingTop: 24}}>
+      <div style={{maxWidth:430,margin:"0 auto",paddingTop: 42}}>
         <div style={{textAlign:"center",marginBottom:12}}>
           <div style={{fontSize:13,fontWeight:900,color:"rgba(255,255,255,.55)",letterSpacing:2}}>🌎 AVENTURA DAMIGOTCHI</div>
           <div style={{fontSize:28,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.25)"}}>Camino del Aprendizaje</div>
@@ -5087,7 +5123,7 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
           <svg style={{position:"absolute",left:0,top:0,width:"100%",height:"100%",pointerEvents:"none",opacity:.42}} viewBox={`0 0 400 ${nodes.length*112}`} preserveAspectRatio="none">
             <path d={`M200 45 ${nodes.map((_,i)=>`C ${i%2?60:340} ${95+i*112}, ${i%2?340:60} ${130+i*112}, 200 ${180+i*112}`).join(' ')}`} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="10" strokeLinecap="round" strokeDasharray="20 18"/>
           </svg>
-          <div style={{position:"relative",display:"flex",flexDirection:"column",gap:24}}>
+          <div style={{position:"relative",display:"flex",flexDirection:"column",gap:30,paddingTop:28}}>
             {nodes.map((node,idx)=>{
               const done = !!completed[node.level];
               const unlocked = node.level <= maxUnlocked;
@@ -5095,7 +5131,7 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
               const active = unlocked && !done && node.level === maxUnlocked;
               const isCurrent = node.level === currentLevel;
               return (
-                <div key={node.level} ref={isCurrent ? currentNodeRef : null} style={{display:"flex",justifyContent:side,paddingLeft:idx%2===0?8:0,paddingRight:idx%2?8:0,scrollMarginTop:150}}>
+                <div key={node.level} ref={isCurrent ? currentNodeRef : null} style={{display:"flex",justifyContent:side,paddingLeft:idx%2===0?8:0,paddingRight:idx%2?8:0,scrollMarginTop:220}}>
                   <button onClick={()=>unlocked && !done && onStart(node.level)} disabled={!unlocked || done} style={{position:"relative",width:124,minHeight:144,border:"none",background:"transparent",cursor:unlocked&&!done?"pointer":"default",fontFamily:"'Nunito',sans-serif",opacity:unlocked?1:.55}}>
                     {(active || isCurrent) && <div style={{position:"absolute",inset:0,borderRadius:32,background:`${node.color}33`,filter:"blur(16px)",animation:"pulse 1.5s infinite"}}/>}
                     {isCurrent && pet && <div style={{position:"relative",zIndex:2,width:44,height:44,margin:"0 auto -6px",borderRadius:999,display:"grid",placeItems:"center",background:"linear-gradient(135deg,rgba(255,255,255,.95),rgba(255,255,255,.75))",border:"3px solid #FFD700",boxShadow:"0 8px 18px rgba(0,0,0,.28), 0 0 16px rgba(255,215,0,.35)",animation:"floaty 2.2s ease-in-out infinite"}}>
@@ -5124,10 +5160,10 @@ function AdventureScreen({ adventure, onStart, onBack, pet }){
 function LevelCompleteOverlay({ complete, onContinue }){
   if(!complete) return null;
   const rewardLabels = {
-    card: "Carta sorpresa",
-    stars: "Estrellas extra",
-    clothes: "Ropita nueva",
-    badge: "Insignia",
+    card: "¡Ganaste una carta mágica!",
+    stars: "¡Estrellas extra para tu aventura!",
+    clothes: "¡Ropita nueva desbloqueada!",
+    badge: "¡Nueva insignia de aprendizaje!",
   };
   const rewardIcons = {
     card: "🃏",
@@ -5142,8 +5178,9 @@ function LevelCompleteOverlay({ complete, onContinue }){
         <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,rgba(255,215,0,.22),transparent 36%),radial-gradient(circle at 15% 78%,rgba(46,204,64,.16),transparent 28%)",pointerEvents:"none"}}/>
         <div style={{position:"relative"}}>
           <div style={{fontSize:44,marginBottom:4}}>🎉</div>
-          <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>¡Excelente!</div>
-          <div style={{marginTop:6,fontSize:15,fontWeight:900,color:"rgba(255,255,255,.82)"}}>Nivel {complete.level || complete.node?.level || ""} completado</div>
+          <div style={{fontSize:30,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>¡Nivel logrado!</div>
+          <div style={{marginTop:6,fontSize:15,fontWeight:900,color:"rgba(255,255,255,.82)"}}>Completaste el Nivel {complete.level || complete.node?.level || ""} con 3 estrellas</div>
+          <div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.58)",marginTop:4}}>Tu Damigotchi está orgulloso de ti 💜</div>
           <div style={{fontSize:34,letterSpacing:4,margin:"14px 0 8px",filter:"drop-shadow(0 5px 9px rgba(0,0,0,.35))"}}>⭐⭐⭐</div>
           <div style={{margin:"14px auto",padding:"14px 12px",borderRadius:20,background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.14)",boxShadow:"inset 0 0 18px rgba(255,255,255,.06)"}}>
             <div style={{fontSize:34}}>{rewardIcons[reward] || "🎁"}</div>
@@ -5151,6 +5188,33 @@ function LevelCompleteOverlay({ complete, onContinue }){
             <div style={{fontWeight:900,fontSize:14,color:"rgba(255,255,255,.82)"}}>{rewardLabels[reward] || "Premio especial"}</div>
           </div>
           <button onClick={onContinue} style={{width:"100%",border:"none",borderRadius:18,padding:"13px 14px",background:"linear-gradient(135deg,#2ECC40,#88FF6A)",color:"#153016",fontWeight:900,fontSize:18,fontFamily:"'Nunito',sans-serif",boxShadow:"0 6px 0 rgba(0,0,0,.25)",cursor:"pointer"}}>Continuar aventura</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function FirstTimeTutorial({ onClose }){
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:900,background:"rgba(8,6,28,.78)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:18,fontFamily:"'Nunito',sans-serif"}}>
+      <div style={{width:"min(380px,94vw)",borderRadius:30,padding:"24px 20px",textAlign:"center",background:"linear-gradient(160deg,rgba(72,44,150,.98),rgba(36,23,84,.98))",border:"3px solid rgba(255,215,0,.75)",boxShadow:"0 24px 80px rgba(0,0,0,.55),0 0 38px rgba(255,215,0,.25)",color:"white",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 0%,rgba(255,215,0,.22),transparent 38%)",pointerEvents:"none"}}/>
+        <div style={{position:"relative"}}>
+          <div style={{fontSize:40}}>🥚✨</div>
+          <div style={{fontSize:27,fontWeight:900,color:"#FFD700",textShadow:"2px 3px 0 rgba(0,0,0,.28)"}}>Bienvenido a Damigotchi World</div>
+          <div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,.70)",margin:"8px 0 16px",lineHeight:1.35}}>Tu misión es cuidar, aprender y evolucionar junto a tu compañero mágico.</div>
+          {[
+            ["❤️","Cuídame","Comer, dormir, bañarme y darme cariño me mantiene feliz."],
+            ["🌎","Juega aventura","Completa niveles con 3 estrellas para avanzar."],
+            ["✨","Gana recuerdos","Desbloquea cartas, diplomas, cofres y evoluciones."],
+          ].map(([icon,title,txt])=>(
+            <div key={title} style={{display:"flex",gap:12,alignItems:"center",textAlign:"left",background:"rgba(255,255,255,.08)",border:"1px solid rgba(255,255,255,.12)",borderRadius:18,padding:12,marginBottom:9}}>
+              <div style={{fontSize:28}}>{icon}</div>
+              <div><div style={{fontSize:15,fontWeight:900,color:"white"}}>{title}</div><div style={{fontSize:12,fontWeight:800,color:"rgba(255,255,255,.64)",lineHeight:1.3}}>{txt}</div></div>
+            </div>
+          ))}
+          <button onClick={onClose} style={{width:"100%",marginTop:8,border:"none",borderRadius:18,padding:"13px 14px",background:"linear-gradient(135deg,#FFD700,#FF8C00)",color:"#241033",fontWeight:900,fontSize:17,fontFamily:"'Nunito',sans-serif",boxShadow:"0 6px 0 rgba(0,0,0,.25)",cursor:"pointer"}}>¡Entendido!</button>
         </div>
       </div>
     </div>
@@ -5169,6 +5233,7 @@ export default function App(){
   const [adventure, setAdventure] = useState(()=>{ try { return JSON.parse(localStorage.getItem("damigotchi_adventure_v3")||"null") || { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } catch { return { maxUnlocked:1, completed:{}, active:null, runStars:0 }; } });
   const [levelComplete, setLevelComplete] = useState(null);
   const [evolutionReveal, setEvolutionReveal] = useState(null);
+  const [showTutorial, setShowTutorial] = useState(()=>{ try { return localStorage.getItem("damigotchi_tutorial_seen_v1") !== "yes"; } catch { return true; } });
 
   // Desbloqueo de audio para celulares/tablets.
   // Safari/Chrome móvil exigen una interacción real del usuario antes de reproducir música.
@@ -5480,6 +5545,7 @@ export default function App(){
       <EvolutionReveal reveal={evolutionReveal} pet={pet} onClose={()=>setEvolutionReveal(null)} onView={()=>{setEvolutionReveal(null);setScreen("evolutions");}}/>
       <LevelCompleteOverlay complete={levelComplete} onContinue={()=>{setLevelComplete(null);setScreen("adventure");}}/>
       <PurchaseModal dialog={purchaseDialog} onCancel={()=>setPurchaseDialog(null)} onConfirm={confirmPurchase}/>
+      {showTutorial && screen==="home" && <FirstTimeTutorial onClose={()=>{ try { localStorage.setItem("damigotchi_tutorial_seen_v1","yes"); } catch {} setShowTutorial(false); }}/>}
       <FooterAutor/>
     </>
   );
